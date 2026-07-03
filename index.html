@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2026 금강사업본부 SUMMER 그랑프리 현황판</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="root"></div>
+<div id="mobileSwipeHint">👉 옆으로 밀어주세요</div>
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="face_data.js"></script>
+<script>
+const IMG1='';
+const IMG2='';
+const IMG3='';
+const VID1='assets/video/vid1.mp4';
+const VID2='assets/video/vid2.mp4';
+const VID3='assets/video/vid3.mp4';
+const LOGO_IMG='assets/img/logo.png'; // 신한라이프 로고 이미지 (보내주시면 여기 넣을게요)
+
+const {useState,useMemo,useRef,useEffect}=React;
+const h=React.createElement;
+const FACE_DATA=window.FACE_DATA||{};
+const GOAL=10000000;
+const MOBILE_TRACK_W=1800;
+let UID=100;
+
+const COLORS=["#EF4444","#2563EB","#FACC15"];
+function branchColor(fc){
+  if(fc.지점==='금강')return '#EF4444';
+  if(fc.지점==='서청주')return '#2563EB';
+  if(fc.지점==='대전')return '#FACC15';
+  return '#9CA3AF';
+}
+const RKC={1:"#F59E0B",2:"#8B9CB6",3:"#92400E"};
+const isQ=f=>f.cmip>=2000000&&f.cnt>=5;
+const INIT=(window.SUMMER_BOARD_DATA||[]);
+
+const TRACK_H=500, BALLOON_H=60, LABEL_H=40;
+const TRACK_W=3000, X_LEFT=60, X_RIGHT=2940;
+function cx(cmip){
+  const Z1=THIRD, Z2=THIRD, Z3=TRACK_W-THIRD*2;
+  if(cmip<=2000000){
+    return X_LEFT+(cmip/2000000)*(Z1-X_LEFT);
+  } else if(cmip<=5000000){
+    return Z1+((cmip-2000000)/3000000)*Z2;
+  } else {
+    return Z1+Z2+((cmip-5000000)/5000000)*Z3;
+  }
+}
+const THIRD=TRACK_W/3;
+const ZONES=[
+  {left:0,          width:THIRD,   vid:VID1, lbl:'하노이', sub:'일반(CMIP 0~200만)'},
+  {left:THIRD,      width:THIRD,   vid:VID2, lbl:'싱가폴', sub:'더블(CMIP 200~500만)'},
+  {left:THIRD*2,    width:THIRD,   vid:VID3, lbl:'프라하\n빈\n부다페스트',   sub:'트리플(CMIP 500만~1000만)'},
+];
+const TICKS=[];
+(function(){
+  const Z1=THIRD;
+  const Z2=THIRD;
+  const Z3=TRACK_W-THIRD*2;
+  // 하노이: 4분할 (얇은선 3개: 50/100/150만, 경계 200만)
+  for(let i=0;i<=4;i++){
+    const x=X_LEFT+(Z1-X_LEFT)/4*i;
+    const v=i*500000;
+    TICKS.push({v,x,major:i===0||i===4,boundary:i===4});
+  }
+  // 싱가폴: 6분할 (얇은선 5개: 250/300/350/400/450만, 경계 500만)
+  for(let i=1;i<=6;i++){
+    const x=Z1+Z2/6*i;
+    const v=2000000+i*500000;
+    TICKS.push({v,x,major:i===6,boundary:i===6});
+  }
+  // 유럽: 5분할 (얇은선 4개: 600/700/800/900만, 경계 1000만)
+  for(let i=1;i<=5;i++){
+    const x=Z1+Z2+Z3/5*i;
+    const v=5000000+i*1000000;
+    TICKS.push({v,x,major:i===5,boundary:false});
+  }
+})();
+function xpos(px,mobile){return mobile?(px/TRACK_W*MOBILE_TRACK_W):(px/TRACK_W*100)+'%';}
+function wpos(px,mobile){return mobile?(px/TRACK_W*MOBILE_TRACK_W):(px/TRACK_W*100)+'%';}
+
+function RaceCar(fc,q,col,isTop1=false){
+  const nm=fc.name;
+  const code=fc.사번;
+  const branch=fc.지점;
+  const gid='sm_'+fc.id;
+  const faceImg=FACE_DATA[code];
+
+  // 지점별 정장 색상
+  const SUIT_COLORS={
+    '금강':{top:'#2C2C2E',bot:'#161618',pTop:'#1A1A1C',pBot:'#0D0D0E',shoe:'#000000',tie:'#8B1A1A'},
+    '대전':{top:'#5A5E66',bot:'#3A3D43',pTop:'#3A3D43',pBot:'#26282C',shoe:'#18191B',tie:'#4A4E55'},
+    '서청주':{top:'#2E4A8B',bot:'#1A2D5C',pTop:'#1A2D5C',pBot:'#0F1A38',shoe:'#0A0F1E',tie:'#1E3A6E'},
+  };
+  const c=SUIT_COLORS[branch]||SUIT_COLORS['금강'];
+
+  if(!faceImg){
+    // 얼굴 이미지 없으면 기존 레이싱카 폴백
+    return RaceCarFallback(fc,q,col);
+  }
+
+  // 1등: 만세+제자리점프 / 나머지: 전력질주
+  const speed = isTop1 ? '0.5s' : '0.32s';
+  const bodyAnim  = isTop1 ? `banzaiBody_${gid}`  : `bodyBounce_${gid}`;
+  const armLAnim  = isTop1 ? `banzaiArmL_${gid}`  : `armSwingL_${gid}`;
+  const armRAnim  = isTop1 ? `banzaiArmR_${gid}`  : `armSwingR_${gid}`;
+  const legLAnim  = isTop1 ? `banzaiLegL_${gid}`  : `thighL_${gid}`;
+  const legRAnim  = isTop1 ? `banzaiLegR_${gid}`  : `thighR_${gid}`;
+  const calfLAnim = isTop1 ? `banzaiCalfL_${gid}` : `calfL_${gid}`;
+  const calfRAnim = isTop1 ? `banzaiCalfR_${gid}` : `calfR_${gid}`;
+
+  return h('div',{style:{position:'relative',width:70,height:160,pointerEvents:'none',userSelect:'none'}},
+    h('svg',{width:70,height:160,viewBox:'0 0 70 160',xmlns:'http://www.w3.org/2000/svg',style:{position:'absolute',top:0,left:0,zIndex:1}},
+      h('defs',null,
+        h('linearGradient',{id:'suitGrad_'+gid,x1:0,y1:0,x2:1,y2:1},
+          h('stop',{offset:'0%',stopColor:c.top}),
+          h('stop',{offset:'100%',stopColor:c.bot})
+        ),
+        h('linearGradient',{id:'pantsGrad_'+gid,x1:0,y1:0,x2:1,y2:1},
+          h('stop',{offset:'0%',stopColor:c.pTop}),
+          h('stop',{offset:'100%',stopColor:c.pBot})
+        )
+      ),
+      h('style',null,`
+        @keyframes bodyBounce_${gid}{0%,100%{transform:rotate(6deg) translateY(0)}50%{transform:rotate(6deg) translateY(-2px)}}
+        @keyframes headFollow_${gid}{0%,100%{transform:rotate(6deg) translateY(0)}50%{transform:rotate(6deg) translateY(-2px)}}
+        @keyframes thighL_${gid}{0%,100%{transform:rotate(-32deg)}50%{transform:rotate(28deg)}}
+        @keyframes thighR_${gid}{0%,100%{transform:rotate(28deg)}50%{transform:rotate(-32deg)}}
+        @keyframes calfL_${gid}{0%,100%{transform:rotate(35deg)}50%{transform:rotate(-15deg)}}
+        @keyframes calfR_${gid}{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(35deg)}}
+        @keyframes armSwingL_${gid}{0%,100%{transform:rotate(35deg)}50%{transform:rotate(-30deg)}}
+        @keyframes armSwingR_${gid}{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(35deg)}}
+        @keyframes banzaiBody_${gid}{0%,100%{transform:rotate(0deg) translateY(0)}50%{transform:rotate(0deg) translateY(-8px)}}
+        @keyframes banzaiArmL_${gid}{0%,100%{transform:rotate(75deg)}50%{transform:rotate(95deg)}}
+        @keyframes banzaiArmR_${gid}{0%,100%{transform:rotate(-75deg)}50%{transform:rotate(-95deg)}}
+        @keyframes banzaiLegL_${gid}{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}
+        @keyframes banzaiLegR_${gid}{0%,100%{transform:rotate(15deg)}50%{transform:rotate(-15deg)}}
+        @keyframes banzaiCalfL_${gid}{0%,100%{transform:rotate(30deg)}50%{transform:rotate(10deg)}}
+        @keyframes banzaiCalfR_${gid}{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(-10deg)}}
+        .bg_${gid}{animation:${bodyAnim} ${speed} ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%;}
+        .hg_${gid}{animation:${bodyAnim} ${speed} ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%;}
+        .thl_${gid}{transform-box:fill-box;transform-origin:50% 0%;animation:${legLAnim} ${speed} ease-in-out infinite;}
+        .thr_${gid}{transform-box:fill-box;transform-origin:50% 0%;animation:${legRAnim} ${speed} ease-in-out infinite;}
+        .cfl_${gid}{transform-box:fill-box;transform-origin:50% 0%;animation:${calfLAnim} ${speed} ease-in-out infinite;}
+        .cfr_${gid}{transform-box:fill-box;transform-origin:50% 0%;animation:${calfRAnim} ${speed} ease-in-out infinite;}
+        .arl_${gid}{transform-box:fill-box;transform-origin:50% 0%;animation:${armLAnim} ${speed} ease-in-out infinite;}
+        .arr_${gid}{transform-box:fill-box;transform-origin:50% 0%;animation:${armRAnim} ${speed} ease-in-out infinite;}50%{transform:rotate(35deg)}}
+        @keyframes armSwingL_${gid}{0%,100%{transform:rotate(35deg)}50%{transform:rotate(-30deg)}}
+        @keyframes armSwingR_${gid}{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(35deg)}}
+        
+      `),
+      h('g',{className:'bg_'+gid},
+        h('rect',{x:31,y:86,width:8,height:8,fill:'#F2C9A0',rx:2}),
+        h('path',{d:'M 23 94 Q 35 90 47 94 L 49 118 Q 35 122 21 118 Z',fill:'url(#suitGrad_'+gid+')'}),
+        h('path',{d:'M 31 94 L 35 100 L 39 94',fill:'white'}),
+        h('path',{d:'M 33 96 L 37 96 L 36 108 L 35 112 L 34 108 Z',fill:c.tie})
+      ),
+      h('g',{className:'arl_'+gid},
+        h('rect',{x:15,y:96,width:8,height:22,rx:4,fill:'url(#suitGrad_'+gid+')'}),
+        h('rect',{x:16,y:116,width:6,height:5,rx:2,fill:'#F2C9A0'})
+      ),
+      h('g',{className:'arr_'+gid},
+        h('rect',{x:47,y:96,width:8,height:22,rx:4,fill:'url(#suitGrad_'+gid+')'}),
+        h('rect',{x:48,y:116,width:6,height:5,rx:2,fill:'#F2C9A0'})
+      ),
+      h('g',{className:'thl_'+gid},
+        h('rect',{x:24,y:118,width:9,height:16,rx:3,fill:'url(#pantsGrad_'+gid+')'}),
+        h('g',{className:'cfl_'+gid},
+          h('rect',{x:24,y:134,width:9,height:4,rx:2,fill:c.pBot}),
+          h('ellipse',{cx:28,cy:139,rx:6,ry:3,fill:c.shoe})
+        )
+      ),
+      h('g',{className:'thr_'+gid},
+        h('rect',{x:37,y:118,width:9,height:16,rx:3,fill:'url(#pantsGrad_'+gid+')'}),
+        h('g',{className:'cfr_'+gid},
+          h('rect',{x:37,y:134,width:9,height:4,rx:2,fill:c.pBot}),
+          h('ellipse',{cx:41,cy:139,rx:6,ry:3,fill:c.shoe})
+        )
+      ),
+      h('text',{x:35,y:148,textAnchor:'middle',fill:'white',fontSize:10,fontWeight:700,fontFamily:'sans-serif'},nm)
+    ),
+    h('div',{style:{position:'absolute',top:0,left:5,width:60,height:90,zIndex:3,transformBox:'fill-box',transformOrigin:'50% 100%',animation:`headFollow_${gid} ${speed} ease-in-out infinite`}},
+      h('img',{src:(String(faceImg).startsWith('data:')||String(faceImg).startsWith('assets/')?faceImg:'data:image/png;base64,'+faceImg),style:{width:60,height:90,pointerEvents:'none',displayy:'block'}})
+    )
+  );
+}
+
+function RaceCarFallback(fc,q,col){
+
+  const nm=fc.name;
+  const carW=124;
+  const carH=44;
+  const nameSize=nm.length<=3?28:nm.length<=4?26:23;
+  const gid='carGrad_'+fc.id;
+  const shine='shine_'+fc.id;
+  const isBlue=col==='#2563EB';
+  const isYellow=col==='#FACC15';
+  const dark=isBlue?'#0B3B91':(isYellow?'#D99A00':'#991B1B');
+  const mid=isBlue?'#0F67E8':(isYellow?'#FACC15':'#EF4444');
+  const light=isBlue?'#60A5FA':(isYellow?'#FFE066':'#FCA5A5');
+  const nameFill=isYellow?'#FACC15':col;
+  return h('div',{style:{
+    width:carW,
+    height:carH+36,
+    display:'flex',
+    flexDirection:'column',
+    alignItems:'center',
+    justifyContent:'flex-start',
+    pointerEvents:'none',
+    userSelect:'none',
+    filter:'drop-shadow(0 2px 3px rgba(0,0,0,0.45))'
+  }},
+    h('svg',{
+      width:carW,
+      height:carH,
+      viewBox:'0 0 220 78',
+      preserveAspectRatio:'xMidYMid meet',
+      style:{width:carW,height:carH,display:'block',overflow:'visible'}
+    },
+      h('defs',null,
+        h('linearGradient',{id:gid,x1:'0%',y1:'0%',x2:'100%',y2:'0%'},
+          h('stop',{offset:'0%',stopColor:dark}),
+          h('stop',{offset:'38%',stopColor:mid}),
+          h('stop',{offset:'72%',stopColor:light}),
+          h('stop',{offset:'100%',stopColor:mid})
+        ),
+        h('linearGradient',{id:shine,x1:'0%',y1:'0%',x2:'100%',y2:'0%'},
+          h('stop',{offset:'0%',stopColor:'rgba(255,255,255,0)'}),
+          h('stop',{offset:'45%',stopColor:'rgba(255,255,255,0.85)'}),
+          h('stop',{offset:'100%',stopColor:'rgba(255,255,255,0)'})
+        )
+      ),
+      h('g',{transform:'translate(4,6)'},
+        h('path',{d:'M12 45 L27 28 L70 23 C91 8 126 10 154 25 L185 29 C202 31 214 38 212 47 L193 50 L176 46 L71 47 L51 53 L18 52 Z',fill:'#111827',opacity:0.94}),
+        h('path',{d:'M18 42 L31 28 L72 22 C94 7 128 9 156 26 L185 30 C202 32 213 38 210 45 L190 48 L174 44 L72 45 L52 51 L20 50 Z',fill:'url(#'+gid+')',stroke:'#050505',strokeWidth:2,strokeLinejoin:'round'}),
+        h('path',{d:'M79 20 C96 3 128 4 151 24 L129 27 C114 20 98 18 79 20 Z',fill:'url(#'+gid+')',stroke:'#050505',strokeWidth:1.7}),
+        h('path',{d:'M23 30 L14 11 L31 10 L46 29 Z',fill:'url(#'+gid+')',stroke:'#050505',strokeWidth:1.8,strokeLinejoin:'round'}),
+        h('path',{d:'M190 31 L218 24 L217 37 L191 43 Z',fill:'url(#'+gid+')',stroke:'#050505',strokeWidth:1.7,strokeLinejoin:'round'}),
+        h('path',{d:'M55 36 C86 25 126 25 177 39',fill:'none',stroke:'url(#'+shine+')',strokeWidth:6,strokeLinecap:'round',opacity:0.95}),
+        h('path',{d:'M72 26 C103 14 135 17 163 31',fill:'none',stroke:'rgba(255,255,255,0.72)',strokeWidth:4,strokeLinecap:'round'}),
+        h('path',{d:'M98 48 L150 48 L165 38 L181 39 L165 51 L92 52 Z',fill:'rgba(0,0,0,0.45)',stroke:'rgba(0,0,0,0.65)',strokeWidth:1}),
+        h('circle',{cx:53,cy:51,r:17,fill:'#050505',stroke:'#111827',strokeWidth:2}),
+        h('circle',{cx:53,cy:51,r:10,fill:'#2F333A',stroke:'#D1D5DB',strokeWidth:3}),
+        h('circle',{cx:53,cy:51,r:4,fill:'#0B0B0B'}),
+        h('circle',{cx:174,cy:51,r:17,fill:'#050505',stroke:'#111827',strokeWidth:2}),
+        h('circle',{cx:174,cy:51,r:10,fill:'#2F333A',stroke:'#D1D5DB',strokeWidth:3}),
+        h('circle',{cx:174,cy:51,r:4,fill:'#0B0B0B'}),
+        h('circle',{cx:126,cy:23,r:8.5,fill:'url(#'+gid+')',stroke:'#050505',strokeWidth:2}),
+        h('path',{d:'M125 16 C132 15 138 19 139 25 L128 25 Z',fill:'rgba(255,255,255,0.48)'}),
+        h('path',{d:'M137 21 L157 20',stroke:'#050505',strokeWidth:4,strokeLinecap:'round'}),
+      )
+    ),
+    h('div',{style:{
+      width:carW,
+      marginTop:1,
+      textAlign:'center',
+      fontSize:nameSize,
+      lineHeight:1.05,
+      fontWeight:1000,
+      color:'#fff',
+      textShadow:'0 2px 0 rgba(0,0,0,0.85), 0 0 7px rgba(0,0,0,0.9)',
+      letterSpacing:'-0.06em',
+      whiteSpace:'nowrap',
+      overflow:'hidden',
+      textOverflow:'ellipsis'
+    }},nm)
+  );
+}
+
+function getLevel(fc){
+  if(fc.cmip>=10000000&&fc.cnt>=5)return{lbl:'Triple',col:'#7C3AED'};
+  if(fc.cmip>=5000000&&fc.cnt>=5)return{lbl:'Double',col:'#2563EB'};
+  if(fc.cmip>=2000000&&fc.cnt>=5)return{lbl:'Single',col:'#059669'};
+  return{lbl:'미달',col:'#9CA3AF'};
+}
+
+function App(){
+  const [fcs,setFCs]=useState(INIT);
+  const [showEdit,setShowEdit]=useState(false);
+  const [sortBy,setSortBy]=useState('cmip');
+  const [showPopup,setShowPopup]=useState(false);
+  const [searchId,setSearchId]=useState('');
+  const [searching,setSearching]=useState(false);
+  const [inputVal,setInputVal]=useState('');
+  const [newName,setNewName]=useState('');
+  const [showRanking,setShowRanking]=useState(false);
+
+  const ranked=useMemo(()=>{
+    const q=fcs.filter(isQ).sort((a,b)=>b.canp-a.canp);
+    const nq=fcs.filter(f=>!isQ(f)).sort((a,b)=>b.cmip-a.cmip);
+    return[...q,...nq];
+  },[fcs]);
+  const allSorted=useMemo(()=>
+    [...fcs].sort((a,b)=>{
+      if(sortBy==='cmip')return b.cmip-a.cmip;
+      if(sortBy==='cnt')return b.cnt-a.cnt;
+      return b.canp-a.canp;
+    })
+  ,[fcs,sortBy]);
+  const top10=allSorted.slice(0,10);
+  const searchResult=useMemo(()=>{
+    if(!searching||!searchId.trim())return null;
+    const fc=fcs.find(f=>f.사번===searchId.trim());
+    if(!fc)return null;
+    const rank=allSorted.findIndex(f=>f.id===fc.id)+1;
+    return{fc,rank};
+  },[searching,searchId,fcs,allSorted]);
+  const displayRows=searching
+    ?(searchResult?[{fc:searchResult.fc,rank:searchResult.rank}]:[])
+    :top10.map((fc,i)=>({fc,rank:i+1}));
+
+  const laneH=Math.floor((TRACK_H-LABEL_H-BALLOON_H)/Math.max(fcs.length,1));
+
+  // PC: 뷰포트에 맞게 비율 스케일 / 모바일: 2200px 고정 + 좌우 스크롤
+  const [trackScale,setTrackScale]=useState(1);
+  const [pcTrackH,setPcTrackH]=useState(TRACK_H);
+  const [isMobileView,setIsMobileView]=useState(false);
+  const trackW=isMobileView?MOBILE_TRACK_W:TRACK_W;
+  useEffect(()=>{
+    function calcScale(){
+      const mobile=window.innerWidth<=768;
+      setIsMobileView(mobile);
+      if(mobile){
+        setTrackScale(1);
+        const vh=window.innerHeight;
+        const mobileHeaderH=52;
+        const mobileRankButtonH=52; // 모바일 하단 여백 균형을 위해 현황판 높이 14px 확대
+        const mobileH=Math.max(434, vh-mobileHeaderH-mobileRankButtonH);
+        setPcTrackH(mobileH);
+        return;
+      }
+      const vw=window.innerWidth;
+      const vh=window.innerHeight;
+      const scaleW=vw/trackW;
+      const availableH=Math.max(520, vh-60-66);
+      setTrackScale(scaleW);
+      setPcTrackH(availableH);
+    }
+    calcScale();
+    window.addEventListener('resize',calcScale);
+    return()=>window.removeEventListener('resize',calcScale);
+  },[]);
+
+  // 스크롤하면 힌트 숨기기
+  useEffect(()=>{
+    const el = document.querySelector('[id="scrollHint"]');
+    if(!el) return;
+    const hide = ()=>{ el.style.opacity='0'; };
+    window.addEventListener('scroll', hide, {passive:true, once:true});
+    // 터치 스크롤도 감지
+    const trackEl = document.querySelector('[style*="overflowX"]');
+    if(trackEl) trackEl.addEventListener('scroll', hide, {passive:true, once:true});
+    return()=>window.removeEventListener('scroll', hide);
+  },[isMobileView]);
+
+  function upd(id,key,val){setFCs(p=>p.map(f=>f.id===id?{...f,[key]:Number(val)||0}:f));}
+  function add(){
+    if(!newName.trim())return;
+    setFCs(p=>[...p,{id:UID++,team:newTeam,name:newName.trim(),cmip:0,cnt:0.0,canp:0}]);
+    setNewName('');
+  }
+  function del(id){setFCs(p=>p.filter(f=>f.id!==id));}
+
+  return h('div',{style:{fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif',background:'#f5f5f5',height:'auto',minHeight:'100dvh',display:'flex',flexDirection:'column',overflowY:'auto',overflowX:'hidden'}},
+
+    h('div',{style:{background:'#0B1F45',padding:'clamp(8px,2vw,10px) clamp(10px,3vw,14px)',display:'flex',alignItems:'center',justifyContent:'flex-start',flexWrap:'nowrap',gap:8,position:'sticky',top:0,zIndex:9999,width:'100%',maxWidth:'100vw',overflow:'hidden',boxShadow:'0 2px 10px rgba(0,0,0,0.18)'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+        LOGO_IMG ? h('img',{src:LOGO_IMG,style:{height:'clamp(20px,5vw,28px)',width:'auto',maxWidth:'clamp(118px,38vw,160px)',objectFit:'contain',flexShrink:0}}) : h('div',{style:{width:26,height:26,background:'#E31837',borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,color:'white'}},'S'),
+        h('span',{style:{color:'white',fontWeight:600,fontSize:'clamp(10px,3.2vw,13px)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',minWidth:0}},'2026 금강사업본부 SUMMER 그랑프리 현황판 '),
+        h('i',{className:'ti ti-sun',style:{color:'#FCD34D',fontSize:'clamp(12px,3vw,15px)',flexShrink:0}})
+      )
+    ),
+
+    showEdit&&h('div',{style:{background:'#f8f9fa',padding:'14px',borderBottom:'1px solid #eee'}},
+      h('div',{style:{marginBottom:12}},
+        h('p',{style:{fontSize:12,fontWeight:600,marginBottom:8}},'팀원 추가'),
+        h('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
+          h('input',{type:'text',placeholder:'이름',value:newName,onChange:e=>setNewName(e.target.value),onKeyDown:e=>e.key==='Enter'&&add(),style:{flex:1,minWidth:80,fontSize:12}}),
+
+          h('button',{onClick:add,style:{background:'#0B1F45',color:'white',border:'none',borderRadius:5,padding:'5px 12px',fontSize:12,fontWeight:500,cursor:'pointer',display:'flex',alignItems:'center',gap:4}},
+            h('i',{className:'ti ti-plus',style:{fontSize:13}}),'추가'
+          )
+        )
+      ),
+      h('p',{style:{fontSize:12,fontWeight:600,marginBottom:8}},'업적 입력'),
+      h('div',{style:{overflowX:'auto'}},
+        h('table',{style:{borderCollapse:'collapse',fontSize:12,minWidth:420,width:'100%'}},
+          h('thead',null,h('tr',{style:{background:'#eee'}},
+            ...['이름','CMIP(만)','건수','CANP(만)',''].map(c=>h('th',{key:c,style:{padding:'5px 8px',textAlign:'center',fontWeight:500,color:'#666',borderBottom:'1px solid #ddd',whiteSpace:'nowrap'}},c))
+          )),
+          h('tbody',null,...fcs.map(fc=>
+            h('tr',{key:fc.id,style:{borderBottom:'1px solid #f0f0f0'}},
+
+              h('td',{style:{padding:'4px 8px',fontWeight:500}},fc.name),
+              ...[['cmip',85],['cnt',55],['canp',85]].map(([key,w])=>
+                h('td',{key,style:{padding:'3px 5px'}},
+                  h('input',{type:'number',min:0,value:fc[key],onChange:e=>upd(fc.id,key,e.target.value),style:{width:w,fontSize:12,textAlign:'right'}})
+                )
+              ),
+              h('td',{style:{padding:'3px 6px'}},
+                h('button',{onClick:()=>del(fc.id),style:{background:'none',border:'none',cursor:'pointer',padding:'3px',color:'#E24B4A',display:'flex',alignItems:'center'}},
+                  h('i',{className:'ti ti-trash',style:{fontSize:16}})
+                )
+              )
+            )
+          ))
+        )
+      ),
+      h('div',{style:{marginTop:10,display:'flex',justifyContent:'flex-end'}},
+        h('button',{onClick:()=>setShowEdit(false),style:{fontSize:12,padding:'5px 14px',cursor:'pointer',borderRadius:5,border:'1px solid #ddd',background:'white',fontWeight:500}},'닫기')
+      )
+    ),
+
+    h('div',{style:isMobileView
+      ?{overflowX:'auto',overflowY:'hidden',WebkitOverflowScrolling:'touch',width:'100vw',maxWidth:'100vw',display:'block',paddingBottom:0,flexShrink:0,flex:'0 0 auto'}
+      :{overflowX:'hidden',overflowY:'hidden',width:'100vw',maxWidth:'100vw',display:'block',paddingBottom:0,flexShrink:0,flex:'0 0 auto'}
+    },
+    h('div',{style:{
+      position:'relative',
+      height:pcTrackH,
+      width:isMobileView?MOBILE_TRACK_W:'100%',
+      minWidth:isMobileView?MOBILE_TRACK_W:undefined,
+      overflow:'hidden',
+      background:'#1a1a2e',
+      flex:isMobileView?undefined:1,
+    }},
+    h('div',{style:{
+      position:'absolute',
+      top:0,left:0,
+      width:isMobileView?MOBILE_TRACK_W:'100%',
+      height:'100%',
+      transformOrigin:'top left',
+      transform:'none',
+    }},
+
+
+      ...ZONES.map((z,i)=>h('div',{key:i,style:{
+        position:'absolute',top:0,bottom:0,left:xpos(z.left,isMobileView),width:wpos(z.width,isMobileView),
+        overflow:'hidden',zIndex:1,
+      }},
+        h('video',{
+          autoPlay:true,loop:true,muted:true,playsInline:true,
+          style:{width:'100%',height:'100%',objectFit:'cover',objectPosition:i===0?'20% center':'center center',opacity:0.86,transform:i===0?'scale(1.18)':'none',transformOrigin:i===0?'20% center':'center center',filter:i===2?'saturate(1.08) contrast(1.04) brightness(1.02)':'none',backfaceVisibility:'hidden'},
+        },
+          h('source',{src:z.vid,type:'video/mp4'})
+        )
+      )),
+
+
+      ...ZONES.map((z,i)=>h('div',{key:'zl'+i,style:{
+        position:'absolute',top:'50%',left:xpos(z.left+z.width/2,isMobileView),
+        transform:'translate(-50%,-50%)',zIndex:4,pointerEvents:'none',
+      }},
+        h('div',{style:{color:'rgba(255,255,255,0.28)',fontSize:i===2?(isMobileView?50:'clamp(34px,4.2vw,66px)'):(isMobileView?92:'clamp(56px,7vw,112px)'),fontWeight:900,letterSpacing:'0.08em',whiteSpace:'pre',wordBreak:'keep-all',textAlign:'center',lineHeight:i===2?1.16:1,textShadow:'0 4px 22px rgba(0,0,0,0.55)',background:'transparent',padding:0,border:'none',borderRadius:0,boxShadow:'none'}},z.lbl)
+      )),
+
+      ...TICKS.map(({v,major,x,boundary})=>{
+        const isBoundary=boundary||false;
+        const lbl=major?(v===0?'START':Math.round(v/10000)+'만'):'' ;
+        const edgeLineAdjust = v===10000000 ? -4 : 0;
+        const edgeLabelTransform = 'translateX(-50%)';
+        return h('div',{key:v,style:{position:'absolute',top:0,bottom:0,left:xpos(x,isMobileView),zIndex:20,pointerEvents:'none'}},
+          h('div',{style:{
+            position:'absolute',top:0,bottom:28,left:edgeLineAdjust,
+            borderLeft:isBoundary?'5px dashed rgba(255,255,255,0.98)':(major?'3px dashed rgba(255,255,255,0.9)':'1px dashed rgba(255,255,255,0.35)'),
+            filter:'drop-shadow(0 0 9px rgba(0,0,0,0.65))',
+          }}),
+          major&&h('div',{style:{
+            position:'absolute',bottom:2,left:0,
+            fontSize:13,
+            color:'white',
+            fontWeight:900,
+            background:'rgba(0,0,0,0.58)',
+            padding:'3px 8px',
+            borderRadius:7,
+            whiteSpace:'nowrap',
+            letterSpacing:'normal',
+            transform:edgeLabelTransform,
+            textAlign:'center',
+            lineHeight:1.15,
+            display:'flex',alignItems:'center',justifyContent:'center',
+            boxShadow:'0 2px 8px rgba(0,0,0,0.28)',
+          }},lbl)
+        );
+      }),
+
+      ...(() => {
+        const CHAR_W = isMobileView ? 30 : 70;   // 캐릭터 가로 px (모바일 42% 스케일)
+        const CHAR_H = 160;  // 캐릭터 세로 px
+        const visibleH = pcTrackH;
+        const topMin = 62;
+        const topMax = Math.max(topMin, visibleH - LABEL_H - CHAR_H);
+
+        // 1. CMIP>0 인 FC만 cx값 계산
+        const activeFcs = fcs.filter(fc => fc.cmip > 0).map(fc => ({
+          fc,
+          x: cx(fc.cmip),
+        }));
+
+        // 2. X축 거리 CHAR_W 이내인 사람들끼리 그룹화
+        const groups = [];
+        const assigned = new Set();
+        activeFcs.forEach((item, i) => {
+          if (assigned.has(i)) return;
+          const group = [i];
+          assigned.add(i);
+          activeFcs.forEach((other, j) => {
+            if (i === j || assigned.has(j)) return;
+            if (Math.abs(item.x - other.x) < CHAR_W) {
+              group.push(j);
+              assigned.add(j);
+            }
+          });
+          groups.push(group);
+        });
+
+        // 3. 그룹 내 Y축 균등 분배
+        const yMap = {};
+        groups.forEach(group => {
+          const count = group.length;
+          const totalH = Math.min(count * CHAR_H, topMax - topMin);
+          const gap = count > 1 ? totalH / (count - 1) : 0;
+          group.forEach((idx, rank) => {
+            yMap[idx] = count === 1
+              ? topMin + (topMax - topMin) / 2
+              : topMin + rank * gap;
+          });
+        });
+
+        // CMIP 1등 FC id 계산
+        const top1Id = activeFcs.length > 0
+          ? activeFcs.reduce((a,b) => a.fc.cmip >= b.fc.cmip ? a : b).fc.id
+          : -1;
+
+        return activeFcs.map((item, idx) => {
+          const { fc } = item;
+          const xBasket = item.x;
+          const yc = yMap[idx];
+          const col = branchColor(fc);
+          const q = isQ(fc);
+          const isTop1 = fc.cmip > 0 && fc.id === top1Id;
+          return h('div', {key: fc.id, style: {
+            position: 'absolute',
+            left: xpos(xBasket, isMobileView),
+            top: yc,
+            transform: isMobileView ? 'translate(-50%,-50%) scale(0.42)' : 'translate(-50%,-50%)',
+            transformOrigin: 'center center',
+            zIndex: 80,        transition:'left 0.8s ease',
+        }},
+          RaceCar(fc,q,col,isTop1)
+        );
+        });
+      })()
+    ) // 트랙 inner (scale container)
+    ) // outer track (height wrapper)
+    ), // scroll wrapper
+
+    // 모바일 스크롤 힌트
+    isMobileView && h('div', {
+      id: 'scrollHint',
+      style: {
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        width: 60,
+        height: '100vh',
+        zIndex: 999,
+        pointerEvents: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(to left, rgba(0,0,0,0.45), transparent)',
+        transition: 'opacity 0.6s ease',
+      }
+    },
+      h('style', null, `
+        @keyframes nudge {
+          0%,100% { transform: translateX(0); }
+          50% { transform: translateX(-8px); }
+        }
+        #scrollHint .arrow { animation: nudge 0.8s ease-in-out infinite; }
+      `),
+      h('div', {className: 'arrow', style: {
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+      }},
+        h('span', {style: {fontSize: 24, color: 'white'}}, '◀'),
+        h('span', {style: {
+          fontSize: 9, color: 'white', writingMode: 'vertical-rl',
+          letterSpacing: 2, opacity: 0.9, marginTop: 4,
+        }}, '밀어주세요')
+      )
+    ),
+
+    h('div',{style:{margin:isMobileView?'6px 8px 8px':'8px 12px 12px',borderRadius:12,overflow:'hidden',border:'1.5px solid #E5E7EB',boxShadow:'0 2px 12px rgba(0,0,0,0.07)',flexShrink:0,position:'relative',zIndex:20,background:'white'}},
+    h('div',{
+      onClick:()=>setShowRanking(v=>!v),
+      style:{background:'#0B1F45',padding:isMobileView?'10px 14px':'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,cursor:'pointer',userSelect:'none',position:'relative',zIndex:3}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+        h('i',{className:'ti ti-trophy',style:{fontSize:16,color:'#FCD34D'}}),
+        h('span',{style:{fontWeight:600,fontSize:14,color:'white'}},showRanking?'업적 접기':'금강사업본부 개인 순위 TOP 10 조회')
+      ),
+      h('i',{className:showRanking?'ti ti-chevron-up':'ti ti-chevron-down',style:{fontSize:16,color:'rgba(255,255,255,0.7)'}})
+    ),
+    h('div',{style:{
+      display:'grid',
+      gridTemplateRows:showRanking?'1fr':'0fr',
+      overflow:'hidden',
+      transition:'grid-template-rows 0.68s cubic-bezier(0.22,1,0.36,1), opacity 0.32s ease',
+      opacity:showRanking?1:0,
+      background:'white',
+      willChange:'grid-template-rows, opacity',
+      position:'relative',
+      zIndex:1,
+    }},
+    h('div',{style:{minHeight:0,overflow:'hidden',alignSelf:'start'}},
+    h('div',{style:{padding:'14px',minHeight:0}},
+      h('div',{style:{marginBottom:14}},
+        h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}},
+          ...([['cmip','CMIP 순위'],['canp','CANP 순위'],['cnt','건수 순위']].map(([key,lbl])=>
+            h('button',{key,onClick:()=>setSortBy(key),style:{
+              padding:'6px 14px',fontSize:12,fontWeight:500,cursor:'pointer',
+              border:'none',borderRadius:6,
+              background:sortBy===key?'#0B1F45':'#eee',
+              color:sortBy===key?'white':'#444',
+            }},lbl)
+          )),
+          h('button',{onClick:()=>{setShowPopup(true);setInputVal(searchId);},style:{
+            padding:'6px 14px',fontSize:12,fontWeight:500,cursor:'pointer',
+            border:'1.5px solid #0B1F45',borderRadius:6,
+            background:searching?'#0B1F45':'white',
+            color:searching?'white':'#0B1F45',
+          }},'FC 조회'),
+          searching&&h('button',{onClick:()=>{setSearching(false);setSearchId('');},style:{
+            padding:'6px 14px',fontSize:12,fontWeight:500,cursor:'pointer',
+            background:'#eee',color:'#555',border:'none',borderRadius:6,whiteSpace:'nowrap'
+          }},'전체보기')
+        )
+      ),
+      h('div',{style:{overflowX:'auto'}},
+        h('table',{style:{borderCollapse:'collapse',fontSize:12,width:'100%',minWidth:500}},
+          h('thead',null,h('tr',{style:{background:'#f8f9fa'}},
+            ...['순위','이름','CMIP(원)','건수','CANP(원)','달성','CMIP 진행률','건수'].map(c=>
+              h('th',{key:c,style:{padding:'9px 10px',textAlign:'center',fontWeight:500,fontSize:11,color:'#666',borderBottom:'1px solid #eee',whiteSpace:'nowrap'}},c)
+            )
+          )),
+          h('tbody',null,
+            searching&&!searchResult&&h('tr',null,h('td',{colSpan:8,style:{textAlign:'center',padding:'24px',color:'#999',fontSize:13}},'조회 결과 없음')),
+            ...displayRows.map(({fc,rank})=>{
+            const q=isQ(fc);
+            const cpct=(fc.cmip/2000000)*100;const npct=(fc.cnt/5)*100;
+            return h('tr',{key:fc.id,style:{borderBottom:'1px solid #f0f0f0'}},
+              h('td',{style:{padding:'9px 10px',textAlign:'center'}},
+                h('div',{style:{width:24,height:24,borderRadius:'50%',background:RKC[rank]||'#E5E7EB',color:rank<=3?'white':'#666',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700}},rank)
+              ),
+              h('td',{style:{padding:'9px 10px',fontWeight:500,whiteSpace:'nowrap',textAlign:'center'}},fc.name),
+              h('td',{style:{padding:'9px 10px',textAlign:'center'}},fc.cmip.toLocaleString()),
+              h('td',{style:{padding:'9px 10px',textAlign:'center'}},fc.cnt),
+              h('td',{style:{padding:'9px 10px',textAlign:'center'}},fc.canp.toLocaleString()),
+              h('td',{style:{padding:'9px 10px',textAlign:'center'}},
+                (()=>{const lv=getLevel(fc);return h('span',{style:{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:4,background:lv.col+'22',color:lv.col,whiteSpace:'nowrap'}},lv.lbl);})()
+              ),
+              h('td',{style:{padding:'9px 10px',minWidth:110}},
+                h('div',{style:{display:'flex',alignItems:'center',gap:5}},
+                  h('div',{style:{flex:1,height:5,background:'#eee',borderRadius:3,overflow:'hidden'}},
+                    h('div',{style:{height:'100%',borderRadius:3,width:Math.min(cpct,100)+'%',background:cpct>=100?'#22C55E':'#6366F1'}})),
+                  h('span',{style:{fontSize:10,color:'#666',minWidth:38,textAlign:'right'}},cpct.toFixed(1)+'%')
+                )
+              ),
+              h('td',{style:{padding:'9px 10px',minWidth:80}},
+                h('div',{style:{display:'flex',alignItems:'center',gap:5}},
+                  h('div',{style:{flex:1,height:5,background:'#eee',borderRadius:3,overflow:'hidden'}},
+                    h('div',{style:{height:'100%',borderRadius:3,width:Math.min(npct,100)+'%',background:fc.cnt>=10?'#22C55E':'#3B82F6'}})),
+                  h('span',{style:{fontSize:10,color:'#666',minWidth:28,textAlign:'right'}},fc.cnt+'/5')
+                )
+              )
+            );
+          }))
+        )
+      )
+    ) // padding div
+    ) // grid inner div
+    ) // slide div
+    ), // ranking card
+
+    showPopup&&h('div',{style:{
+      position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',
+      display:'flex',alignItems:'center',justifyContent:'center',
+      zIndex:999,
+    }},
+      h('div',{style:{
+        background:'white',borderRadius:14,padding:'28px 24px',
+        width:300,boxShadow:'0 8px 32px rgba(0,0,0,0.2)',
+      }},
+        h('h3',{style:{fontSize:16,fontWeight:600,marginBottom:6,color:'#111'}},'FC 조회'),
+        h('p',{style:{fontSize:12,color:'#888',marginBottom:16}},'인사번호를 입력하면 해당 FC의 순위를 조회합니다.'),
+        h('input',{
+          type:'text',
+          placeholder:'인사번호 입력',
+          value:inputVal,
+          autoFocus:true,
+          onChange:e=>setInputVal(e.target.value),
+          onKeyDown:e=>{
+            if(e.key==='Enter'){
+              setSearchId(inputVal);
+              setSearching(true);
+              setShowPopup(false);
+            }
+          },
+          style:{
+            width:'100%',fontSize:14,border:'1.5px solid #ddd',
+            borderRadius:8,padding:'10px 12px',marginBottom:14,
+            boxSizing:'border-box',
+          }
+        }),
+        h('div',{style:{display:'flex',gap:8}},
+          h('button',{
+            onClick:()=>{
+              setSearchId(inputVal);
+              setSearching(true);
+              setShowPopup(false);
+            },
+            style:{
+              flex:1,padding:'10px',fontSize:13,fontWeight:600,
+              background:'#0B1F45',color:'white',border:'none',
+              borderRadius:8,cursor:'pointer',
+            }
+          },'조회'),
+          h('button',{
+            onClick:()=>setShowPopup(false),
+            style:{
+              padding:'10px 16px',fontSize:13,fontWeight:500,
+              background:'#eee',color:'#444',border:'none',
+              borderRadius:8,cursor:'pointer',
+            }
+          },'닫기')
+        )
+      )
+    ),
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+
+<style id="internalNoticePopupStyle">
+  #internalNoticeOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(0, 0, 0, 0.56);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+  #internalNoticeBox {
+    position: relative;
+    width: min(92vw, 460px);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.36);
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #111827;
+    text-align: center;
+    animation: internalNoticePop 0.24s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes internalNoticePop {
+    from { transform: translateY(10px) scale(0.96); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  #internalNoticeHeader {
+    position: relative;
+    padding: 34px 52px 18px;
+    background: linear-gradient(135deg, #061a3e 0%, #0A5FB4 100%);
+    color: white;
+    text-align: center;
+  }
+  #internalNoticeHeader h2 {
+    margin: 0;
+    font-size: clamp(21px, 5.8vw, 30px);
+    line-height: 1.18;
+    letter-spacing: -0.045em;
+    font-weight: 850;
+    word-break: keep-all;
+  }
+  #internalNoticeHeader h2 span {
+    display: block;
+    margin-top: 7px;
+    font-size: clamp(18px, 5vw, 25px);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+    text-shadow: 0 2px 10px rgba(0,0,0,.22);
+  }
+  #internalNoticeClose {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.17);
+    color: #fff;
+    font-size: 23px;
+    line-height: 32px;
+    cursor: pointer;
+    transition: background .16s ease, transform .16s ease;
+  }
+  #internalNoticeClose:hover { background: rgba(255,255,255,0.26); }
+  #internalNoticeClose:active { transform: scale(0.94); }
+  #internalNoticeBody {
+    padding: 28px 28px 22px;
+    text-align: center;
+  }
+  #internalNoticeBody p {
+    margin: 0;
+    font-size: clamp(15px, 4vw, 17px);
+    line-height: 1.65;
+    font-weight: 800;
+    color: #dc2626;
+    word-break: keep-all;
+    text-align: center;
+  }
+  #internalNoticeActions {
+    display: flex;
+    justify-content: center;
+    padding: 0 28px 30px;
+  }
+  #internalNoticeTodayBtn {
+    width: min(100%, 320px);
+    height: 48px;
+    border: 0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0A5FB4 0%, #063C82 100%);
+    color: #fff;
+    font-size: clamp(14px, 3.6vw, 16px);
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(10, 95, 180, 0.28);
+    transition: filter .16s ease, transform .16s ease, box-shadow .16s ease;
+  }
+  #internalNoticeTodayBtn:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 12px 28px rgba(10, 95, 180, 0.34);
+  }
+  #internalNoticeTodayBtn:active { transform: scale(0.985); }
+  @media (max-width: 420px) {
+    #internalNoticeOverlay { padding: 14px; align-items: center; }
+    #internalNoticeBox { width: min(94vw, 420px); border-radius: 20px; }
+    #internalNoticeHeader { padding: 32px 46px 17px; }
+    #internalNoticeBody { padding: 25px 21px 20px; }
+    #internalNoticeActions { padding: 0 21px 27px; }
+    #internalNoticeClose { top: 12px; right: 12px; }
+  }
+</style>
+<div id="internalNoticeOverlay" role="dialog" aria-modal="true" aria-labelledby="internalNoticeTitle">
+  <div id="internalNoticeBox">
+    <div id="internalNoticeHeader">
+      <button id="internalNoticeClose" type="button" aria-label="닫기">×</button>
+      <h2 id="internalNoticeTitle">2026 금강사업본부<span>SUMMER 그랑프리 현황판</span></h2>
+    </div>
+    <div id="internalNoticeBody">
+      <p>⚠️ 본 페이지는 금강사업본부 내부용입니다.<br>외부 공유 및 유출을 금지합니다.</p>
+    </div>
+    <div id="internalNoticeActions">
+      <button id="internalNoticeTodayBtn" type="button">오늘 하루 보지 않기</button>
+    </div>
+  </div>
+</div>
+<script id="internalNoticePopupScript">
+(function(){
+  var KEY = 'greatSummerNoticeHiddenDate';
+  var overlay = document.getElementById('internalNoticeOverlay');
+  var closeBtn = document.getElementById('internalNoticeClose');
+  var todayBtn = document.getElementById('internalNoticeTodayBtn');
+  function todayString(){
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + day;
+  }
+  function hide(){
+    if (overlay) overlay.style.display = 'none';
+  }
+  function show(){
+    if (overlay) overlay.style.display = 'flex';
+  }
+  try {
+    if (localStorage.getItem(KEY) !== todayString()) show();
+  } catch(e) { show(); }
+  if (closeBtn) closeBtn.addEventListener('click', function(){
+    hide();
+  });
+  if (todayBtn) todayBtn.addEventListener('click', function(){
+    try { localStorage.setItem(KEY, todayString()); } catch(e) {}
+    hide();
+  });
+})();
+</script>
+
+
+<script>
+(function(){
+  function ready(fn){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fn); else fn(); }
+  ready(function(){
+    var el=document.getElementById('mobileSwipeHint');
+    if(!el) return;
+    var hide=function(){ el.classList.add('hide'); };
+    if(window.matchMedia && !window.matchMedia('(max-width: 768px)').matches){ hide(); return; }
+    el.addEventListener('click',hide,{once:true});
+    window.addEventListener('touchstart',hide,{once:true,passive:true});
+    window.addEventListener('scroll',hide,{once:true,passive:true});
+    setTimeout(hide,6500);
+  });
+})();
+</script>
+
+</body>
+</html>

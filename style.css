@@ -34,3 +34,14 @@ select{border:1px solid #ddd;border-radius:5px;padding:5px 8px;background:white}
   0%,100%{transform:translateX(0);opacity:.92;}
   50%{transform:translateX(-8px);opacity:1;}
 }
+
+
+/* 데스크톱에서는 좌우 스크롤 안내 완전 숨김 */
+@media (min-width: 769px){
+  #mobileSwipeHint,
+  #scrollHint{
+    display:none !important;
+    opacity:0 !important;
+    visibility:hidden !important;
+  }
+}

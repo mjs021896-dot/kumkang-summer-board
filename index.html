@@ -40,9 +40,9 @@ const isQ=f=>f.cmip>=2000000&&f.cnt>=5;
 const INIT=(window.SUMMER_BOARD_DATA||[]);
 
 const TRACK_H=500, BALLOON_H=60, LABEL_H=40;
-const TRACK_W=3200, X_LEFT=60, X_RIGHT=3140;
+const TRACK_W=3060, X_LEFT=60, X_RIGHT=3000;
 function cx(cmip){
-  const Z1=THIRD, Z2=THIRD, Z3=TRACK_W-THIRD*2;
+  const Z1=THIRD, Z2=THIRD, Z3=X_RIGHT-THIRD*2;
   if(cmip<=2000000){
     return X_LEFT+(cmip/2000000)*(Z1-X_LEFT);
   } else if(cmip<=5000000){
@@ -51,17 +51,17 @@ function cx(cmip){
     return Z1+Z2+((cmip-5000000)/5000000)*Z3;
   }
 }
-const THIRD=TRACK_W/3;
+const THIRD=1000;
 const ZONES=[
-  {left:0,          width:THIRD,   vid:VID1, lbl:'하노이', sub:'일반(CMIP 0~200만)'},
-  {left:THIRD,      width:THIRD,   vid:VID2, lbl:'싱가폴', sub:'더블(CMIP 200~500만)'},
-  {left:THIRD*2,    width:THIRD,   vid:VID3, lbl:'프라하\n빈\n부다페스트',   sub:'트리플(CMIP 500만~1000만)'},
+  {left:0,          width:THIRD,              vid:VID1, lbl:'하노이', sub:'일반(CMIP 0~200만)'},
+  {left:THIRD,      width:THIRD,              vid:VID2, lbl:'싱가폴', sub:'더블(CMIP 200~500만)'},
+  {left:THIRD*2,    width:TRACK_W-THIRD*2,    vid:VID3, lbl:'프라하\n빈\n부다페스트',   sub:'트리플(CMIP 500만~1000만)'},
 ];
 const TICKS=[];
 (function(){
   const Z1=THIRD;
   const Z2=THIRD;
-  const Z3=(TRACK_W-THIRD*2)-60;
+  const Z3=X_RIGHT-THIRD*2;
   // 하노이: 4분할 (얇은선 3개: 50/100/150만, 경계 200만)
   for(let i=0;i<=4;i++){
     const x=X_LEFT+(Z1-X_LEFT)/4*i;
@@ -113,11 +113,9 @@ function RaceCar(fc,q,col,isTop1=false){
   const legRAnim  = isTop1 ? `banzaiLegR_${gid}`  : `thighR_${gid}`;
   const calfLAnim = isTop1 ? `banzaiCalfL_${gid}` : `calfL_${gid}`;
   const calfRAnim = isTop1 ? `banzaiCalfR_${gid}` : `calfR_${gid}`;
-  const armLen = isTop1 ? 30 : 22;
-  const handY = isTop1 ? 124 : 116;
 
-  return h('div',{style:{position:'relative',width:85,height:195,pointerEvents:'none',userSelect:'none',overflow:'visible'}},
-    h('svg',{width:77,height:194,viewBox:'0 0 70 176',xmlns:'http://www.w3.org/2000/svg',style:{position:'absolute',top:0,left:0,zIndex:1}},
+  return h('div',{style:{position:'relative',width:77,height:176,pointerEvents:'none',userSelect:'none'}},
+    h('svg',{width:77,height:176,viewBox:'0 0 70 160',xmlns:'http://www.w3.org/2000/svg',style:{position:'absolute',top:0,left:0,zIndex:1,overflow:'visible'}},
       h('defs',null,
         h('linearGradient',{id:'suitGrad_'+gid,x1:0,y1:0,x2:1,y2:1},
           h('stop',{offset:'0%',stopColor:c.top}),
@@ -138,8 +136,8 @@ function RaceCar(fc,q,col,isTop1=false){
         @keyframes armSwingL_${gid}{0%,100%{transform:rotate(35deg)}50%{transform:rotate(-30deg)}}
         @keyframes armSwingR_${gid}{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(35deg)}}
         @keyframes banzaiBody_${gid}{0%,100%{transform:rotate(0deg) translateY(0)}50%{transform:rotate(0deg) translateY(-8px)}}
-        @keyframes banzaiArmL_${gid}{0%,100%{transform:rotate(100deg)}50%{transform:rotate(122deg)}}
-        @keyframes banzaiArmR_${gid}{0%,100%{transform:rotate(-100deg)}50%{transform:rotate(-122deg)}}
+        @keyframes banzaiArmL_${gid}{0%,100%{transform:rotate(105deg)}50%{transform:rotate(125deg)}}
+        @keyframes banzaiArmR_${gid}{0%,100%{transform:rotate(-105deg)}50%{transform:rotate(-125deg)}}
         @keyframes banzaiLegL_${gid}{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}
         @keyframes banzaiLegR_${gid}{0%,100%{transform:rotate(15deg)}50%{transform:rotate(-15deg)}}
         @keyframes banzaiCalfL_${gid}{0%,100%{transform:rotate(30deg)}50%{transform:rotate(10deg)}}
@@ -163,12 +161,12 @@ function RaceCar(fc,q,col,isTop1=false){
         h('path',{d:'M 33 96 L 37 96 L 36 108 L 35 112 L 34 108 Z',fill:c.tie})
       ),
       h('g',{className:'arl_'+gid},
-        h('rect',{x:15,y:96,width:8,height:armLen,rx:4,fill:'url(#suitGrad_'+gid+')'}),
-        h('rect',{x:16,y:handY,width:6,height:6,rx:3,fill:'#F2C9A0'})
+        h('rect',{x:15,y:96,width:8,height:27,rx:4,fill:'url(#suitGrad_'+gid+')'}),
+        h('rect',{x:16,y:121,width:7,height:6,rx:3,fill:'#F2C9A0'})
       ),
       h('g',{className:'arr_'+gid},
-        h('rect',{x:47,y:96,width:8,height:armLen,rx:4,fill:'url(#suitGrad_'+gid+')'}),
-        h('rect',{x:48,y:handY,width:6,height:6,rx:3,fill:'#F2C9A0'})
+        h('rect',{x:47,y:96,width:8,height:27,rx:4,fill:'url(#suitGrad_'+gid+')'}),
+        h('rect',{x:47,y:121,width:7,height:6,rx:3,fill:'#F2C9A0'})
       ),
       h('g',{className:'thl_'+gid},
         h('rect',{x:24,y:118,width:9,height:16,rx:3,fill:'url(#pantsGrad_'+gid+')'}),
@@ -184,9 +182,9 @@ function RaceCar(fc,q,col,isTop1=false){
           h('ellipse',{cx:41,cy:139,rx:6,ry:3,fill:c.shoe})
         )
       ),
-      h('text',{x:35,y:158,textAnchor:'middle',fill:'white',fontSize:20,fontWeight:900,fontFamily:'sans-serif',stroke:'rgba(0,0,0,0.75)',strokeWidth:1.2,paintOrder:'stroke fill'},nm)
+      h('text',{x:35,y:153,textAnchor:'middle',fill:'white',fontSize:20,fontWeight:900,fontFamily:'sans-serif',paintOrder:'stroke',stroke:'rgba(0,0,0,0.72)',strokeWidth:2,strokeLinejoin:'round'},nm)
     ),
-    h('div',{style:{position:'absolute',top:0,left:5,width:66,height:99,zIndex:3,transformBox:'fill-box',transformOrigin:'50% 100%',animation:`headFollow_${gid} ${speed} ease-in-out infinite`,overflow:'visible'}},
+    h('div',{style:{position:'absolute',top:0,left:5.5,width:66,height:99,zIndex:3,transformBox:'fill-box',transformOrigin:'50% 100%',animation:`headFollow_${gid} ${speed} ease-in-out infinite`}},
       h('img',{src:(String(faceImg).startsWith('data:')||String(faceImg).startsWith('assets/')?faceImg:'data:image/png;base64,'+faceImg),style:{width:66,height:99,pointerEvents:'none',display:'block'}})
     )
   );
@@ -492,69 +490,86 @@ function App(){
       }),
 
       ...(() => {
-        const CHAR_W = isMobileView ? 38 : 95;   // 캐릭터 가로 px (확대 후 겹침 방지)
-        const CHAR_H = 205;  // 캐릭터 세로 px (확대 후 겹침 방지)
+        // 캐릭터 확대 후에도 잘리지 않게, X/Y축을 모두 활용해서 배치
+        const VISUAL_W = isMobileView ? 77 * 0.42 : 77;
+        const VISUAL_H = isMobileView ? 176 * 0.42 : 176;
+        const AVOID_W = isMobileView ? 58 : 112;
+        const AVOID_H = isMobileView ? 88 : 205;
         const visibleH = pcTrackH;
-        const topMin = 62;
-        const topMax = Math.max(topMin, visibleH - LABEL_H - CHAR_H);
+        const topPad = isMobileView ? 10 : 14;
+        const bottomPad = isMobileView ? 10 : 14;
+        const usableTop = topPad + VISUAL_H / 2;
+        const usableBottom = Math.max(usableTop, visibleH - LABEL_H - bottomPad - VISUAL_H / 2);
+        const usableRange = Math.max(1, usableBottom - usableTop);
+        const laneCount = Math.max(2, Math.min(isMobileView ? 11 : 8, Math.floor(usableRange / (AVOID_H * 0.72)) + 1));
+        const lanes = Array.from({length: laneCount}, (_, i) => laneCount === 1 ? usableTop + usableRange / 2 : usableTop + (usableRange * i / (laneCount - 1)));
 
         // 1. CMIP>0 인 FC만 cx값 계산
         const activeFcs = fcs.filter(fc => fc.cmip > 0).map(fc => ({
           fc,
           x: cx(fc.cmip),
-        }));
+        })).sort((a,b)=>a.x-b.x || b.fc.cmip-a.fc.cmip);
 
-        // 2. X축 거리 CHAR_W 이내인 사람들끼리 그룹화
-        const groups = [];
-        const assigned = new Set();
-        activeFcs.forEach((item, i) => {
-          if (assigned.has(i)) return;
-          const group = [i];
-          assigned.add(i);
-          activeFcs.forEach((other, j) => {
-            if (i === j || assigned.has(j)) return;
-            if (Math.abs(item.x - other.x) < CHAR_W) {
-              group.push(j);
-              assigned.add(j);
-            }
+        // 2. X축이 너무 가까운 사람들은 살짝 좌우로 벌려서 겹침 완화
+        const xAdjusted = [];
+        for(let i=0;i<activeFcs.length;){
+          const group=[activeFcs[i]];
+          let j=i+1;
+          while(j<activeFcs.length && Math.abs(activeFcs[j].x - group[group.length-1].x) < AVOID_W*0.58){
+            group.push(activeFcs[j]);
+            j++;
+          }
+          const spread = Math.min(isMobileView ? 22 : 46, AVOID_W * 0.42);
+          group.forEach((item, k)=>{
+            const offset = (k - (group.length-1)/2) * spread;
+            xAdjusted.push({...item, xAdj: Math.max(X_LEFT, Math.min(X_RIGHT, item.x + offset))});
           });
-          groups.push(group);
-        });
+          i=j;
+        }
 
-        // 3. 그룹 내 Y축 균등 분배
-        const yMap = {};
-        groups.forEach(group => {
-          const count = group.length;
-          const totalH = Math.min(count * CHAR_H, topMax - topMin);
-          const gap = count > 1 ? totalH / (count - 1) : 0;
-          group.forEach((idx, rank) => {
-            yMap[idx] = count === 1
-              ? topMin + (topMax - topMin) / 2
-              : topMin + rank * gap;
+        // 3. 각 캐릭터마다 기존 배치와 가장 덜 겹치는 Y 레인을 선택
+        const placed=[];
+        const positioned=xAdjusted.map((item)=>{
+          let bestY=lanes[0];
+          let bestScore=Infinity;
+          lanes.forEach((candidateY, laneIdx)=>{
+            let score=0;
+            placed.forEach(p=>{
+              const dx=Math.abs(item.xAdj-p.x);
+              const dy=Math.abs(candidateY-p.y);
+              if(dx<AVOID_W && dy<AVOID_H){
+                score += (AVOID_W-dx)*(AVOID_H-dy);
+              }
+              // X가 가까우면 Y를 더 멀리 쓰도록 추가 페널티
+              if(dx<AVOID_W*0.72) score += Math.max(0, (AVOID_H*0.95-dy))*45;
+            });
+            // 같은 레인만 몰리지 않게 약한 페널티
+            score += placed.filter(p=>p.laneIdx===laneIdx).length * 180;
+            if(score<bestScore){bestScore=score;bestY=candidateY;}
           });
+          const pos={...item,x:item.xAdj,y:bestY,laneIdx:lanes.indexOf(bestY)};
+          placed.push(pos);
+          return pos;
         });
 
         // CMIP 1등 FC id 계산
-        const top1Id = activeFcs.length > 0
-          ? activeFcs.reduce((a,b) => a.fc.cmip >= b.fc.cmip ? a : b).fc.id
+        const top1Id = positioned.length > 0
+          ? positioned.reduce((a,b) => a.fc.cmip >= b.fc.cmip ? a : b).fc.id
           : -1;
 
-        return activeFcs.map((item, idx) => {
+        return positioned.map((item) => {
           const { fc } = item;
-          const xBasket = item.x;
-          const yc = yMap[idx];
           const col = branchColor(fc);
           const q = isQ(fc);
           const isTop1 = fc.cmip > 0 && fc.id === top1Id;
           return h('div', {key: fc.id, style: {
             position: 'absolute',
-            left: xpos(xBasket, isMobileView),
-            top: yc,
-            transform: isMobileView ? 'translate(-50%,-50%) scale(0.46)' : 'translate(-50%,-50%)',
+            left: xpos(item.x, isMobileView),
+            top: item.y,
+            transform: isMobileView ? 'translate(-50%,-50%) scale(0.42)' : 'translate(-50%,-50%)',
             transformOrigin: 'center center',
-            zIndex: 300,
-            overflow: 'visible',
-            transition:'left 0.8s ease',
+            zIndex: isTop1 ? 120 : 90,
+            transition:'left 0.8s ease, top 0.8s ease',
         }},
           RaceCar(fc,q,col,isTop1)
         );
@@ -911,6 +926,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(h(App));
   });
 })();
 </script>
+
+
+
 
 </body>
 </html>

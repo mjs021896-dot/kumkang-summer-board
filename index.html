@@ -114,9 +114,11 @@ function RaceCar(fc,q,col,isTop1=false){
   const legRAnim  = isTop1 ? `banzaiLegR_${gid}`  : `thighR_${gid}`;
   const calfLAnim = isTop1 ? `banzaiCalfL_${gid}` : `calfL_${gid}`;
   const calfRAnim = isTop1 ? `banzaiCalfR_${gid}` : `calfR_${gid}`;
+  const armLen = isTop1 ? 30 : 22;
+  const handY = isTop1 ? 124 : 116;
 
-  return h('div',{style:{position:'relative',width:70,height:160,pointerEvents:'none',userSelect:'none'}},
-    h('svg',{width:70,height:160,viewBox:'0 0 70 160',xmlns:'http://www.w3.org/2000/svg',style:{position:'absolute',top:0,left:0,zIndex:1}},
+  return h('div',{style:{position:'relative',width:85,height:195,pointerEvents:'none',userSelect:'none',overflow:'visible'}},
+    h('svg',{width:77,height:194,viewBox:'0 0 70 176',xmlns:'http://www.w3.org/2000/svg',style:{position:'absolute',top:0,left:0,zIndex:1}},
       h('defs',null,
         h('linearGradient',{id:'suitGrad_'+gid,x1:0,y1:0,x2:1,y2:1},
           h('stop',{offset:'0%',stopColor:c.top}),
@@ -137,8 +139,8 @@ function RaceCar(fc,q,col,isTop1=false){
         @keyframes armSwingL_${gid}{0%,100%{transform:rotate(35deg)}50%{transform:rotate(-30deg)}}
         @keyframes armSwingR_${gid}{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(35deg)}}
         @keyframes banzaiBody_${gid}{0%,100%{transform:rotate(0deg) translateY(0)}50%{transform:rotate(0deg) translateY(-8px)}}
-        @keyframes banzaiArmL_${gid}{0%,100%{transform:rotate(75deg)}50%{transform:rotate(95deg)}}
-        @keyframes banzaiArmR_${gid}{0%,100%{transform:rotate(-75deg)}50%{transform:rotate(-95deg)}}
+        @keyframes banzaiArmL_${gid}{0%,100%{transform:rotate(100deg)}50%{transform:rotate(122deg)}}
+        @keyframes banzaiArmR_${gid}{0%,100%{transform:rotate(-100deg)}50%{transform:rotate(-122deg)}}
         @keyframes banzaiLegL_${gid}{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}
         @keyframes banzaiLegR_${gid}{0%,100%{transform:rotate(15deg)}50%{transform:rotate(-15deg)}}
         @keyframes banzaiCalfL_${gid}{0%,100%{transform:rotate(30deg)}50%{transform:rotate(10deg)}}
@@ -162,12 +164,12 @@ function RaceCar(fc,q,col,isTop1=false){
         h('path',{d:'M 33 96 L 37 96 L 36 108 L 35 112 L 34 108 Z',fill:c.tie})
       ),
       h('g',{className:'arl_'+gid},
-        h('rect',{x:15,y:96,width:8,height:22,rx:4,fill:'url(#suitGrad_'+gid+')'}),
-        h('rect',{x:16,y:116,width:6,height:5,rx:2,fill:'#F2C9A0'})
+        h('rect',{x:15,y:96,width:8,height:armLen,rx:4,fill:'url(#suitGrad_'+gid+')'}),
+        h('rect',{x:16,y:handY,width:6,height:6,rx:3,fill:'#F2C9A0'})
       ),
       h('g',{className:'arr_'+gid},
-        h('rect',{x:47,y:96,width:8,height:22,rx:4,fill:'url(#suitGrad_'+gid+')'}),
-        h('rect',{x:48,y:116,width:6,height:5,rx:2,fill:'#F2C9A0'})
+        h('rect',{x:47,y:96,width:8,height:armLen,rx:4,fill:'url(#suitGrad_'+gid+')'}),
+        h('rect',{x:48,y:handY,width:6,height:6,rx:3,fill:'#F2C9A0'})
       ),
       h('g',{className:'thl_'+gid},
         h('rect',{x:24,y:118,width:9,height:16,rx:3,fill:'url(#pantsGrad_'+gid+')'}),
@@ -183,10 +185,10 @@ function RaceCar(fc,q,col,isTop1=false){
           h('ellipse',{cx:41,cy:139,rx:6,ry:3,fill:c.shoe})
         )
       ),
-      h('text',{x:35,y:148,textAnchor:'middle',fill:'white',fontSize:10,fontWeight:700,fontFamily:'sans-serif'},nm)
+      h('text',{x:35,y:158,textAnchor:'middle',fill:'white',fontSize:20,fontWeight:900,fontFamily:'sans-serif',stroke:'rgba(0,0,0,0.75)',strokeWidth:1.2,paintOrder:'stroke fill'},nm)
     ),
-    h('div',{style:{position:'absolute',top:0,left:5,width:60,height:90,zIndex:3,transformBox:'fill-box',transformOrigin:'50% 100%',animation:`headFollow_${gid} ${speed} ease-in-out infinite`}},
-      h('img',{src:(String(faceImg).startsWith('data:')||String(faceImg).startsWith('assets/')?faceImg:'data:image/png;base64,'+faceImg),style:{width:60,height:90,pointerEvents:'none',displayy:'block'}})
+    h('div',{style:{position:'absolute',top:0,left:5,width:66,height:99,zIndex:3,transformBox:'fill-box',transformOrigin:'50% 100%',animation:`headFollow_${gid} ${speed} ease-in-out infinite`,overflow:'visible'}},
+      h('img',{src:(String(faceImg).startsWith('data:')||String(faceImg).startsWith('assets/')?faceImg:'data:image/png;base64,'+faceImg),style:{width:66,height:99,pointerEvents:'none',display:'block'}})
     )
   );
 }
@@ -491,8 +493,8 @@ function App(){
       }),
 
       ...(() => {
-        const CHAR_W = isMobileView ? 30 : 70;   // 캐릭터 가로 px (모바일 42% 스케일)
-        const CHAR_H = 160;  // 캐릭터 세로 px
+        const CHAR_W = isMobileView ? 38 : 95;   // 캐릭터 가로 px (확대 후 겹침 방지)
+        const CHAR_H = 205;  // 캐릭터 세로 px (확대 후 겹침 방지)
         const visibleH = pcTrackH;
         const topMin = 62;
         const topMax = Math.max(topMin, visibleH - LABEL_H - CHAR_H);
@@ -549,9 +551,11 @@ function App(){
             position: 'absolute',
             left: xpos(xBasket, isMobileView),
             top: yc,
-            transform: isMobileView ? 'translate(-50%,-50%) scale(0.42)' : 'translate(-50%,-50%)',
+            transform: isMobileView ? 'translate(-50%,-50%) scale(0.46)' : 'translate(-50%,-50%)',
             transformOrigin: 'center center',
-            zIndex: 80,        transition:'left 0.8s ease',
+            zIndex: 300,
+            overflow: 'visible',
+            transition:'left 0.8s ease',
         }},
           RaceCar(fc,q,col,isTop1)
         );

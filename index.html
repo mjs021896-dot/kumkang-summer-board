@@ -113,8 +113,10 @@ function RaceCar(fc,q,col,isTop1=false){
   const legRAnim  = isTop1 ? `banzaiLegR_${gid}`  : `thighR_${gid}`;
   const calfLAnim = isTop1 ? `banzaiCalfL_${gid}` : `calfL_${gid}`;
   const calfRAnim = isTop1 ? `banzaiCalfR_${gid}` : `calfR_${gid}`;
+  const headAnim  = isTop1 ? `banzaiHead_${gid}`  : `headFollow_${gid}`;
 
-  return h('div',{style:{position:'relative',width:77,height:176,pointerEvents:'none',userSelect:'none'}},
+  return h('div',{style:{position:'relative',width:77,height:176,pointerEvents:'none',userSelect:'none',animation:isTop1?`top1Jump_${gid} ${speed} ease-in-out infinite`:undefined}},
+    h('style',null,`@keyframes top1Jump_${gid}{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}`),
     h('svg',{width:77,height:176,viewBox:'0 0 70 160',xmlns:'http://www.w3.org/2000/svg',style:{position:'absolute',top:0,left:0,zIndex:1,overflow:'visible'}},
       h('defs',null,
         h('linearGradient',{id:'suitGrad_'+gid,x1:0,y1:0,x2:1,y2:1},
@@ -135,7 +137,8 @@ function RaceCar(fc,q,col,isTop1=false){
         @keyframes calfR_${gid}{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(35deg)}}
         @keyframes armSwingL_${gid}{0%,100%{transform:rotate(35deg)}50%{transform:rotate(-30deg)}}
         @keyframes armSwingR_${gid}{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(35deg)}}
-        @keyframes banzaiBody_${gid}{0%,100%{transform:rotate(0deg) translateY(0)}50%{transform:rotate(0deg) translateY(-8px)}}
+        @keyframes banzaiBody_${gid}{0%,100%{transform:rotate(0deg) translateY(0)}50%{transform:rotate(0deg) translateY(-10px)}}
+        @keyframes banzaiHead_${gid}{0%,100%{transform:rotate(0deg) translateY(0)}50%{transform:rotate(0deg) translateY(-10px)}}
         @keyframes banzaiArmL_${gid}{0%,100%{transform:rotate(105deg)}50%{transform:rotate(125deg)}}
         @keyframes banzaiArmR_${gid}{0%,100%{transform:rotate(-105deg)}50%{transform:rotate(-125deg)}}
         @keyframes banzaiLegL_${gid}{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}
@@ -184,7 +187,7 @@ function RaceCar(fc,q,col,isTop1=false){
       ),
       h('text',{x:35,y:153,textAnchor:'middle',fill:'white',fontSize:20,fontWeight:900,fontFamily:'sans-serif',paintOrder:'stroke',stroke:'rgba(0,0,0,0.72)',strokeWidth:2,strokeLinejoin:'round'},nm)
     ),
-    h('div',{style:{position:'absolute',top:0,left:5.5,width:66,height:99,zIndex:3,transformBox:'fill-box',transformOrigin:'50% 100%',animation:`headFollow_${gid} ${speed} ease-in-out infinite`}},
+    h('div',{style:{position:'absolute',top:0,left:5.5,width:66,height:99,zIndex:3,transformBox:'fill-box',transformOrigin:'50% 100%',animation:`${headAnim} ${speed} ease-in-out infinite`}},
       h('img',{src:(String(faceImg).startsWith('data:')||String(faceImg).startsWith('assets/')?faceImg:'data:image/png;base64,'+faceImg),style:{width:66,height:99,pointerEvents:'none',display:'block'}})
     )
   );
@@ -510,22 +513,9 @@ function App(){
           x: cx(fc.cmip),
         })).sort((a,b)=>a.x-b.x || b.fc.cmip-a.fc.cmip);
 
-        // 2. X축이 너무 가까운 사람들은 살짝 좌우로 벌려서 겹침 완화
-        const xAdjusted = [];
-        for(let i=0;i<activeFcs.length;){
-          const group=[activeFcs[i]];
-          let j=i+1;
-          while(j<activeFcs.length && Math.abs(activeFcs[j].x - group[group.length-1].x) < AVOID_W*0.58){
-            group.push(activeFcs[j]);
-            j++;
-          }
-          const spread = Math.min(isMobileView ? 22 : 46, AVOID_W * 0.42);
-          group.forEach((item, k)=>{
-            const offset = (k - (group.length-1)/2) * spread;
-            xAdjusted.push({...item, xAdj: Math.max(X_LEFT, Math.min(X_RIGHT, item.x + offset))});
-          });
-          i=j;
-        }
+        // 2. CMIP 위치 정확도를 위해 X축은 절대 보정하지 않음
+        //    겹침은 Y축 레인 선택으로만 해결한다.
+        const xAdjusted = activeFcs.map(item => ({...item, xAdj: item.x}));
 
         // 3. 각 캐릭터마다 기존 배치와 가장 덜 겹치는 Y 레인을 선택
         const placed=[];

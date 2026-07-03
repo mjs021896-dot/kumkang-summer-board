@@ -40,7 +40,7 @@ const isQ=f=>f.cmip>=2000000&&f.cnt>=5;
 const INIT=(window.SUMMER_BOARD_DATA||[]);
 
 const TRACK_H=500, BALLOON_H=60, LABEL_H=40;
-const TRACK_W=3000, X_LEFT=60, X_RIGHT=2940;
+const TRACK_W=3200, X_LEFT=60, X_RIGHT=3140;
 function cx(cmip){
   const Z1=THIRD, Z2=THIRD, Z3=TRACK_W-THIRD*2;
   if(cmip<=2000000){
@@ -61,7 +61,7 @@ const TICKS=[];
 (function(){
   const Z1=THIRD;
   const Z2=THIRD;
-  const Z3=TRACK_W-THIRD*2;
+  const Z3=(TRACK_W-THIRD*2)-60;
   // 하노이: 4분할 (얇은선 3개: 50/100/150만, 경계 200만)
   for(let i=0;i<=4;i++){
     const x=X_LEFT+(Z1-X_LEFT)/4*i;

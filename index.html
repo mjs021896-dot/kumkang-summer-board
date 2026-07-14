@@ -104,7 +104,7 @@ function RaceCar(fc,q,col,isTop1=false){
     return RaceCarFallback(fc,q,col);
   }
 
-  // 달성자(CMIP 200만 이상 + 건수 5건 이상): 만세+제자리점프 / 나머지: 전력질주
+  // 달성자(CMIP 200만+ & 건수 5건+): 만세+제자리점프 (1등은 왕관 추가) / 미달성: 전력질주
   const celebrate = q;
   const speed = celebrate ? '0.5s' : '0.32s';
   const bodyAnim  = celebrate ? `banzaiBody_${gid}`  : `bodyBounce_${gid}`;
@@ -146,6 +146,14 @@ function RaceCar(fc,q,col,isTop1=false){
         @keyframes banzaiLegR_${gid}{0%,100%{transform:rotate(15deg)}50%{transform:rotate(-15deg)}}
         @keyframes banzaiCalfL_${gid}{0%,100%{transform:rotate(30deg)}50%{transform:rotate(10deg)}}
         @keyframes banzaiCalfR_${gid}{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(-10deg)}}
+        @keyframes cockyBody_${gid}{0%,100%{transform:rotate(-5deg) translateY(0)}50%{transform:rotate(5deg) translateY(-2px)}}
+        @keyframes cockyHead_${gid}{0%,100%{transform:rotate(-8deg) translateY(-1px)}50%{transform:rotate(9deg) translateY(-4px)}}
+        @keyframes cockyArmL_${gid}{0%,100%{transform:rotate(92deg)}50%{transform:rotate(108deg)}}
+        @keyframes cockyArmR_${gid}{0%,100%{transform:rotate(-92deg)}50%{transform:rotate(-108deg)}}
+        @keyframes cockyLegL_${gid}{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+        @keyframes cockyLegR_${gid}{0%,100%{transform:rotate(7deg)}50%{transform:rotate(-7deg)}}
+        @keyframes cockyCalfL_${gid}{0%,100%{transform:rotate(6deg)}50%{transform:rotate(-3deg)}}
+        @keyframes cockyCalfR_${gid}{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(3deg)}}
         .bg_${gid}{animation:${bodyAnim} ${speed} ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%;}
         .hg_${gid}{animation:${bodyAnim} ${speed} ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%;}
         .thl_${gid}{transform-box:fill-box;transform-origin:50% 0%;animation:${legLAnim} ${speed} ease-in-out infinite;}
@@ -186,7 +194,31 @@ function RaceCar(fc,q,col,isTop1=false){
       h('text',{x:35,y:153,textAnchor:'middle',fill:'white',fontSize:20,fontWeight:900,fontFamily:'sans-serif',paintOrder:'stroke',stroke:'rgba(0,0,0,0.72)',strokeWidth:2,strokeLinejoin:'round'},nm)
     ),
     h('div',{style:{position:'absolute',top:0,left:5.5,width:66,height:99,zIndex:3,transformBox:'fill-box',transformOrigin:'50% 100%',animation:`${headAnim} ${speed} ease-in-out infinite`}},
-      h('img',{src:(String(faceImg).startsWith('data:')||String(faceImg).startsWith('assets/')?faceImg:'data:image/png;base64,'+faceImg),style:{width:66,height:99,pointerEvents:'none',display:'block'}})
+      h('img',{src:(String(faceImg).startsWith('data:')||String(faceImg).startsWith('assets/')?faceImg:'data:image/png;base64,'+faceImg),style:{width:66,height:99,pointerEvents:'none',display:'block'}}),
+      isTop1 && h('svg',{width:60,height:46,viewBox:'0 0 60 46',style:{position:'absolute',top:-30,left:14,zIndex:4,overflow:'visible'}},
+        h('defs',null,
+          h('linearGradient',{id:'goldg_'+gid,x1:0,y1:0,x2:0,y2:1},
+            h('stop',{offset:'0%',stopColor:'#FFF3C4'}),
+            h('stop',{offset:'45%',stopColor:'#FBBF24'}),
+            h('stop',{offset:'100%',stopColor:'#B45309'})
+          ),
+          h('linearGradient',{id:'goldband_'+gid,x1:0,y1:0,x2:0,y2:1},
+            h('stop',{offset:'0%',stopColor:'#FDE68A'}),
+            h('stop',{offset:'100%',stopColor:'#D97706'})
+          )
+        ),
+        h('path',{d:'M6 40 L2 14 L16 24 L22 6 L30 0 L38 6 L44 24 L58 14 L54 40 Z',fill:'url(#goldg_'+gid+')',stroke:'#92400E',strokeWidth:1.6,strokeLinejoin:'round'}),
+        h('circle',{cx:30,cy:6,r:4,fill:'#FDE68A',stroke:'#92400E',strokeWidth:1.2}),
+        h('circle',{cx:2,cy:14,r:3.2,fill:'#FDE68A',stroke:'#92400E',strokeWidth:1.2}),
+        h('circle',{cx:58,cy:14,r:3.2,fill:'#FDE68A',stroke:'#92400E',strokeWidth:1.2}),
+        h('rect',{x:4,y:36,width:52,height:8,rx:1.5,fill:'url(#goldband_'+gid+')',stroke:'#92400E',strokeWidth:1.6}),
+        h('circle',{cx:30,cy:20,r:5.5,fill:'#DC2626',stroke:'#7F1D1D',strokeWidth:1.2}),
+        h('path',{d:'M27.5 17 Q30 15 32.5 17',stroke:'#FCA5A5',strokeWidth:1.4,fill:'none',strokeLinecap:'round'}),
+        h('circle',{cx:16,cy:30,r:3,fill:'#2563EB',stroke:'#1E3A8A',strokeWidth:1}),
+        h('circle',{cx:44,cy:30,r:3,fill:'#2563EB',stroke:'#1E3A8A',strokeWidth:1}),
+        h('path',{d:'M8 4 L10 8 L14 9 L10 10 L8 14 L6 10 L2 9 L6 8 Z',fill:'#FEF3C7'}),
+        h('path',{d:'M52 -2 L53.5 1 L56.5 1.8 L53.5 2.6 L52 5.6 L50.5 2.6 L47.5 1.8 L50.5 1 Z',fill:'#FEF3C7'})
+      )
     )
   );
 }

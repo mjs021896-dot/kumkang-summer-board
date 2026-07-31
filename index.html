@@ -323,8 +323,9 @@ function Countdown({isMobileView}){
   const START    = new Date('2026-07-01T00:00:00+09:00').getTime(); // 도화선 기준 시작
   // =============================
 
-  const [now,setNow] = useState(Date.now());
-  const [topOffset,setTopOffset] = useState(0);
+  const [now,setNow]           = useState(Date.now());
+  const [topOffset,setTopOffset] = useState(0);   // 헤더 높이
+  const [selfH,setSelfH]       = useState(0);     // 타이머 바 자신의 높이
   const rootRef = useRef(null);
 
   // 1초마다 갱신
@@ -333,19 +334,28 @@ function Countdown({isMobileView}){
     return ()=>clearInterval(t);
   },[]);
 
-  // 바로 위 형제(= 헤더)의 높이를 재서 그 아래에 붙는다.
-  // 헤더 쪽 코드를 건드리지 않아도 되도록 이렇게 처리한다.
+  // 헤더와 자기 자신의 높이를 재서, 화면 위에 겹치지 않게 자리를 확보한다.
+  // 헤더 쪽 코드를 몰라도 되도록 '바로 위 형제'를 헤더로 보고 잰다.
   useEffect(()=>{
     function calc(){
       const el = rootRef.current;
       if(!el) return;
       const prev = el.previousElementSibling;
       setTopOffset(prev ? Math.round(prev.getBoundingClientRect().height) : 0);
+      setSelfH(Math.round(el.getBoundingClientRect().height));
     }
     calc();
     window.addEventListener('resize',calc);
-    return ()=>window.removeEventListener('resize',calc);
-  },[]);
+    let ro=null;
+    if(typeof ResizeObserver!=='undefined'){
+      ro=new ResizeObserver(calc);
+      if(rootRef.current){
+        ro.observe(rootRef.current);
+        if(rootRef.current.previousElementSibling) ro.observe(rootRef.current.previousElementSibling);
+      }
+    }
+    return ()=>{ window.removeEventListener('resize',calc); if(ro) ro.disconnect(); };
+  },[isMobileView]);
 
   const diff = DEADLINE - now;
   const over = diff <= 0;
@@ -383,8 +393,8 @@ function Countdown({isMobileView}){
     letterSpacing:'0.03em', lineHeight:1, whiteSpace:'nowrap', textAlign:'center'
   };
 
-  return h('div',{ref:rootRef,style:{
-      position:'sticky', top:topOffset, zIndex:9998, width:'100%', flexShrink:0
+  const bar = h('div',{ref:rootRef,style:{
+      position:'fixed', top:topOffset, left:0, right:0, zIndex:9998
     }},
 
     h('style',null,
@@ -408,7 +418,6 @@ function Countdown({isMobileView}){
         maxWidth:1400, margin:'0 auto'
       }},
 
-        // 라벨 + 상태등
         h('div',{style:{display:'flex',alignItems:'center',gap:9,flexShrink:0,order:1}},
           !isMobileView && h('span',{style:{
             fontFamily:'ui-monospace,Consolas,monospace', fontSize:9.5,
@@ -427,7 +436,6 @@ function Countdown({isMobileView}){
           )
         ),
 
-        // LCD (꺼진 세그먼트를 뒤에 깔아 계기판처럼)
         h('div',{style:{
           position:'relative', flexShrink:0, order:2,
           marginLeft:isMobileView?'auto':0,
@@ -453,7 +461,6 @@ function Countdown({isMobileView}){
           }})
         ),
 
-        // 메시지
         h('div',{style:{
           order:3, flex:isMobileView?'1 1 100%':'1 1 auto', minWidth:0,
           padding:isMobileView?'6px 10px':'7px 12px',
@@ -464,7 +471,6 @@ function Countdown({isMobileView}){
         }}, msg)
       ),
 
-      // 도화선
       h('div',{style:{height:3,background:'rgba(255,255,255,0.06)',overflow:'hidden'}},
         h('div',{style:{
           height:'100%', width:pct.toFixed(2)+'%',
@@ -476,6 +482,12 @@ function Countdown({isMobileView}){
       hazard()
     )
   );
+
+  // 헤더와 타이머가 화면에 고정(fixed)되어 흐름에서 빠지므로,
+  // 그만큼 빈 자리를 만들어 아래 내용이 가려지지 않게 한다.
+  const spacer = h('div',{style:{height:topOffset+selfH,flexShrink:0}});
+
+  return h(React.Fragment,null,bar,spacer);
 }
 
 function App(){
@@ -567,7 +579,7 @@ function App(){
 
   return h('div',{style:{fontFamily:'-apple-system,BlinkMacSystemFont,sans-serif',background:'#f5f5f5',height:'auto',minHeight:'100dvh',display:'flex',flexDirection:'column',overflowY:'auto',overflowX:'hidden'}},
 
-    h('div',{style:{background:'#0B1F45',padding:'clamp(8px,2vw,10px) clamp(10px,3vw,14px)',display:'flex',alignItems:'center',justifyContent:'flex-start',flexWrap:'nowrap',gap:8,position:'sticky',top:0,zIndex:9999,width:'100%',maxWidth:'100vw',overflow:'hidden',boxShadow:'0 2px 10px rgba(0,0,0,0.18)'}},
+    h('div',{style:{background:'#0B1F45',padding:'clamp(8px,2vw,10px) clamp(10px,3vw,14px)',display:'flex',alignItems:'center',justifyContent:'flex-start',flexWrap:'nowrap',gap:8,position:'fixed',top:0,left:0,right:0,zIndex:9999,width:'100%',maxWidth:'100vw',overflow:'hidden',boxShadow:'0 2px 10px rgba(0,0,0,0.18)'}},
       h('div',{style:{display:'flex',alignItems:'center',gap:8}},
         LOGO_IMG ? h('img',{src:LOGO_IMG,style:{height:'clamp(20px,5vw,28px)',width:'auto',maxWidth:'clamp(118px,38vw,160px)',objectFit:'contain',flexShrink:0}}) : h('div',{style:{width:26,height:26,background:'#E31837',borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,color:'white'}},'S'),
         h('span',{style:{color:'white',fontWeight:600,fontSize:'clamp(10px,3.2vw,13px)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',minWidth:0}},'2026 금강사업본부 SUMMER 그랑프리 현황판 '),

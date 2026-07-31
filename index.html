@@ -323,19 +323,17 @@ function Countdown({isMobileView}){
   const START    = new Date('2026-07-01T00:00:00+09:00').getTime(); // 도화선 기준 시작
   // =============================
 
-  const [now,setNow]           = useState(Date.now());
+  const [now,setNow]             = useState(Date.now());
   const [topOffset,setTopOffset] = useState(0);   // 헤더 높이
-  const [selfH,setSelfH]       = useState(0);     // 타이머 바 자신의 높이
+  const [selfH,setSelfH]         = useState(0);   // 타이머 바 자신의 높이
   const rootRef = useRef(null);
 
-  // 1초마다 갱신
   useEffect(()=>{
     const t = setInterval(()=>setNow(Date.now()),1000);
     return ()=>clearInterval(t);
   },[]);
 
-  // 헤더와 자기 자신의 높이를 재서, 화면 위에 겹치지 않게 자리를 확보한다.
-  // 헤더 쪽 코드를 몰라도 되도록 '바로 위 형제'를 헤더로 보고 잰다.
+  // 헤더와 자기 자신의 높이를 재서, 아래 내용이 가려지지 않게 자리를 확보한다.
   useEffect(()=>{
     function calc(){
       const el = rootRef.current;
@@ -363,21 +361,18 @@ function Countdown({isMobileView}){
   const p    = n => (n<10?'0':'') + n;
   const hrs  = diff / 3600000;
 
-  // 남은 시간에 따라 색·상태·문구가 바뀐다.
-  // 멀 때는 코칭, 가까워지면 압박.
-  let col, state, msg, shake = false;
-  if(over)              { col='#5B646F'; state='CLOSED';   msg='마감되었습니다. 모두 수고하셨습니다.'; }
-  else if(hrs>=14*24)   { col='#3AD6A0'; state='ARMED';    msg='아직 판을 짤 시간이 있다. 지금 심어두면 마지막 주가 편해진다.'; }
-  else if(hrs>=7*24)    { col='#3AD6A0'; state='ARMED';    msg='2주 남았다. 이번 주에 만난 사람이 다음 주 계약이 된다.'; }
-  else if(hrs>=3*24)    { col='#FFD23F'; state='CAUTION';  msg='이번 주가 승부처다. 지금 잡은 미팅까지가 마감 안에 들어온다.'; }
-  else if(hrs>=24)      { col='#FF8A3D'; state='WARNING';  msg='3일 남았다. 새로 찾기보다 이미 만난 사람에게 다시 연락할 때.'; }
-  else if(hrs>=6)       { col='#FF3B3B'; state='CRITICAL'; msg='하루도 안 남았다. 오늘 안에 끝내야 한다.'; shake=true; }
-  else if(hrs>=1)       { col='#FF3B3B'; state='CRITICAL'; msg='몇 시간 안 남았다. 지금 전화 한 통이 순위를 바꾼다.'; shake=true; }
-  else                  { col='#FF2020'; state='FINAL';    msg='마지막 1시간.'; shake=true; }
+  // 남은 시간에 따라 색과 상태 표시가 바뀐다.
+  let col, state, shake = false;
+  if(over)              { col='#5B646F'; state='CLOSED';   }
+  else if(hrs>=7*24)    { col='#3AD6A0'; state='ARMED';    }
+  else if(hrs>=3*24)    { col='#FFD23F'; state='CAUTION';  }
+  else if(hrs>=24)      { col='#FF8A3D'; state='WARNING';  }
+  else if(hrs>=1)       { col='#FF3B3B'; state='CRITICAL'; shake=true; }
+  else                  { col='#FF2020'; state='FINAL';    shake=true; }
 
-  const pct    = Math.max(0, Math.min(100, (now-START)/(DEADLINE-START)*100));
-  const digitF = isMobileView ? 20 : 30;
-  const blink  = over ? 'none' : `scBlink ${hrs<1?'0.4s':'1.2s'} steps(1) infinite`;
+  const pct   = Math.max(0, Math.min(100, (now-START)/(DEADLINE-START)*100));
+  const blink = over ? 'none' : `scBlink ${hrs<1?'0.4s':'1.2s'} steps(1) infinite`;
+  const padT  = isMobileView ? 8 : 9;
 
   const timeText = p(Math.floor(t/86400))+':'+p(Math.floor((t%86400)/3600))
                  +':'+p(Math.floor((t%3600)/60))+':'+p(t%60);
@@ -387,10 +382,12 @@ function Countdown({isMobileView}){
     background:'repeating-linear-gradient(45deg,#E8B100 0 8px,#15171C 8px 16px)'
   }});
 
+  // 화면 폭에 맞춰 숫자가 커진다
   const lcdFont = {
     fontFamily:'ui-monospace,Consolas,"D2Coding",monospace',
-    fontSize:digitF, fontWeight:700, fontVariantNumeric:'tabular-nums',
-    letterSpacing:'0.03em', lineHeight:1, whiteSpace:'nowrap', textAlign:'center'
+    fontSize: isMobileView ? 'clamp(30px,11.5vw,52px)' : 'clamp(34px,4.6vw,58px)',
+    fontWeight:700, fontVariantNumeric:'tabular-nums',
+    letterSpacing:'0.04em', lineHeight:1, whiteSpace:'nowrap', textAlign:'center'
   };
 
   const bar = h('div',{ref:rootRef,style:{
@@ -413,64 +410,51 @@ function Countdown({isMobileView}){
       hazard(),
 
       h('div',{style:{
-        display:'flex', alignItems:'center', flexWrap:'wrap',
-        gap:isMobileView?9:18, padding:isMobileView?'7px 10px':'9px 18px',
+        display:'flex', alignItems:'center',
+        gap:isMobileView?8:14, padding:isMobileView?'6px 8px':'8px 16px',
         maxWidth:1400, margin:'0 auto'
       }},
 
-        h('div',{style:{display:'flex',alignItems:'center',gap:9,flexShrink:0,order:1}},
-          !isMobileView && h('span',{style:{
-            fontFamily:'ui-monospace,Consolas,monospace', fontSize:9.5,
-            letterSpacing:'0.24em', color:'#7D8794', whiteSpace:'nowrap'
-          }},'SUMMER GRAND PRIX'),
+        // 상태등
+        h('div',{style:{display:'flex',alignItems:'center',gap:6,flexShrink:0}},
+          h('i',{style:{
+            width:8, height:8, borderRadius:'50%', background:col,
+            boxShadow:'0 0 9px '+col, display:'block', animation:blink
+          }}),
           h('span',{style:{
-            display:'flex', alignItems:'center', gap:6,
-            fontFamily:'ui-monospace,Consolas,monospace', fontSize:9.5,
-            letterSpacing:'0.2em', color:col, whiteSpace:'nowrap'
-          }},
-            h('i',{style:{
-              width:7, height:7, borderRadius:'50%', background:col,
-              boxShadow:'0 0 9px '+col, display:'block', animation:blink
-            }}),
-            state
-          )
+            fontFamily:'ui-monospace,Consolas,monospace',
+            fontSize:isMobileView?9:10, letterSpacing:'0.18em',
+            color:col, whiteSpace:'nowrap'
+          }}, state)
         ),
 
+        // LCD — 남은 폭을 꽉 채운다
         h('div',{style:{
-          position:'relative', flexShrink:0, order:2,
-          marginLeft:isMobileView?'auto':0,
-          padding:isMobileView?'5px 10px 3px':'7px 14px 4px',
+          position:'relative', flex:'1 1 auto', minWidth:0,
+          padding:padT+'px 10px 5px',
           background:'#0A0D0B', border:'1px solid #000', borderRadius:4,
           boxShadow:'inset 0 0 18px '+col+'2E'
         }},
           h('div',{style:Object.assign({},lcdFont,{color:col,opacity:0.07})},'88:88:88:88'),
           h('div',{style:Object.assign({},lcdFont,{
-            position:'absolute', left:0, right:0, top:isMobileView?5:7,
+            position:'absolute', left:0, right:0, top:padT,
             color:col, textShadow:'0 0 14px '+col
           })}, timeText),
-          h('div',{style:{display:'flex',marginTop:5,padding:'0 3px'}},
+          h('div',{style:{display:'flex',marginTop:4,padding:'0 4px'}},
             ...['DAYS','HRS','MIN','SEC'].map(u=>h('span',{key:u,style:{
               flex:1, textAlign:'center',
-              fontFamily:'ui-monospace,monospace', fontSize:isMobileView?6.5:7,
-              letterSpacing:'0.14em', color:col+'8A'
+              fontFamily:'ui-monospace,monospace', fontSize:isMobileView?7:8,
+              letterSpacing:'0.16em', color:col+'8A'
             }},u))
           ),
           h('div',{style:{
             position:'absolute', inset:0, pointerEvents:'none', borderRadius:4,
             background:'repeating-linear-gradient(180deg,rgba(255,255,255,0.035) 0 1px,transparent 1px 3px)'
           }})
-        ),
-
-        h('div',{style:{
-          order:3, flex:isMobileView?'1 1 100%':'1 1 auto', minWidth:0,
-          padding:isMobileView?'6px 10px':'7px 12px',
-          background:'rgba(0,0,0,0.32)',
-          borderLeft:'3px solid '+col, borderRadius:'0 3px 3px 0',
-          fontSize:isMobileView?11:12.5, fontWeight:600, lineHeight:1.45,
-          color:col
-        }}, msg)
+        )
       ),
 
+      // 도화선
       h('div',{style:{height:3,background:'rgba(255,255,255,0.06)',overflow:'hidden'}},
         h('div',{style:{
           height:'100%', width:pct.toFixed(2)+'%',
@@ -483,8 +467,7 @@ function Countdown({isMobileView}){
     )
   );
 
-  // 헤더와 타이머가 화면에 고정(fixed)되어 흐름에서 빠지므로,
-  // 그만큼 빈 자리를 만들어 아래 내용이 가려지지 않게 한다.
+  // 헤더와 타이머가 fixed라 흐름에서 빠지므로, 그만큼 빈 자리를 만든다.
   const spacer = h('div',{style:{height:topOffset+selfH,flexShrink:0}});
 
   return h(React.Fragment,null,bar,spacer);

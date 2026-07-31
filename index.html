@@ -372,23 +372,19 @@ function Countdown({isMobileView}){
 
   const pct   = Math.max(0, Math.min(100, (now-START)/(DEADLINE-START)*100));
   const blink = over ? 'none' : `scBlink ${hrs<1?'0.4s':'1.2s'} steps(1) infinite`;
-  const padT  = isMobileView ? 8 : 9;
 
-  const timeText = p(Math.floor(t/86400))+':'+p(Math.floor((t%86400)/3600))
-                 +':'+p(Math.floor((t%3600)/60))+':'+p(t%60);
+  const dd = Math.floor(t/86400);
+  const hh = Math.floor((t%86400)/3600);
+  const mm = Math.floor((t%3600)/60);
+  const ss = t%60;
+  const timeText = dd+'일 '+hh+'시간 '+mm+'분 '+p(ss)+'초';
 
   const hazard = () => h('div',{style:{
     height:6, opacity:0.9,
     background:'repeating-linear-gradient(45deg,#E8B100 0 8px,#15171C 8px 16px)'
   }});
 
-  // 화면 폭에 맞춰 숫자가 커진다
-  const lcdFont = {
-    fontFamily:'ui-monospace,Consolas,"D2Coding",monospace',
-    fontSize: isMobileView ? 'clamp(30px,11.5vw,52px)' : 'clamp(34px,4.6vw,58px)',
-    fontWeight:700, fontVariantNumeric:'tabular-nums',
-    letterSpacing:'0.04em', lineHeight:1, whiteSpace:'nowrap', textAlign:'center'
-  };
+  const baseF = isMobileView ? 'clamp(13px,4.1vw,26px)' : 'clamp(15px,2.1vw,28px)';
 
   const bar = h('div',{ref:rootRef,style:{
       position:'fixed', top:topOffset, left:0, right:0, zIndex:9998
@@ -411,7 +407,7 @@ function Countdown({isMobileView}){
 
       h('div',{style:{
         display:'flex', alignItems:'center',
-        gap:isMobileView?8:14, padding:isMobileView?'6px 8px':'8px 16px',
+        gap:isMobileView?7:14, padding:isMobileView?'7px 8px':'9px 16px',
         maxWidth:1400, margin:'0 auto'
       }},
 
@@ -423,29 +419,32 @@ function Countdown({isMobileView}){
           }}),
           h('span',{style:{
             fontFamily:'ui-monospace,Consolas,monospace',
-            fontSize:isMobileView?9:10, letterSpacing:'0.18em',
+            fontSize:isMobileView?8.5:10, letterSpacing:'0.18em',
             color:col, whiteSpace:'nowrap'
           }}, state)
         ),
 
-        // LCD — 남은 폭을 꽉 채운다
+        // 표시부 — 남은 폭을 꽉 채운다
         h('div',{style:{
           position:'relative', flex:'1 1 auto', minWidth:0,
-          padding:padT+'px 10px 5px',
+          padding:isMobileView?'9px 8px':'11px 14px',
           background:'#0A0D0B', border:'1px solid #000', borderRadius:4,
-          boxShadow:'inset 0 0 18px '+col+'2E'
+          boxShadow:'inset 0 0 18px '+col+'2E',
+          textAlign:'center'
         }},
-          h('div',{style:Object.assign({},lcdFont,{color:col,opacity:0.07})},'88:88:88:88'),
-          h('div',{style:Object.assign({},lcdFont,{
-            position:'absolute', left:0, right:0, top:padT,
-            color:col, textShadow:'0 0 14px '+col
-          })}, timeText),
-          h('div',{style:{display:'flex',marginTop:4,padding:'0 4px'}},
-            ...['DAYS','HRS','MIN','SEC'].map(u=>h('span',{key:u,style:{
-              flex:1, textAlign:'center',
-              fontFamily:'ui-monospace,monospace', fontSize:isMobileView?7:8,
-              letterSpacing:'0.16em', color:col+'8A'
-            }},u))
+          h('div',{style:{
+            fontSize:baseF, fontWeight:700, lineHeight:1.35,
+            wordBreak:'keep-all', color:'#FFFFFF'
+          }},
+            over
+              ? [ h('span',{key:'a'},'썸머 그랑프리 '),
+                  h('span',{key:'b',style:{color:col,textShadow:'0 0 14px '+col}},'마감') ]
+              : [ h('span',{key:'a'},'썸머 마감까지 '),
+                  h('span',{key:'b',style:{
+                    color:col, textShadow:'0 0 14px '+col,
+                    fontVariantNumeric:'tabular-nums', fontWeight:800
+                  }}, timeText),
+                  h('span',{key:'c'},' 남음') ]
           ),
           h('div',{style:{
             position:'absolute', inset:0, pointerEvents:'none', borderRadius:4,
